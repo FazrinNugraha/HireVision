@@ -1,0 +1,23 @@
+# === KEAMANAN: Jangan pernah push file ini ke GitHub ===
+.streamlit/secrets.toml
+
+# === File Model Besar (bisa dihasilkan ulang dari notebook) ===
+models/salary_model.pkl
+
+# === Dataset Mentah (upload manual ke Streamlit Cloud atau gunakan Git LFS) ===
+data/job_salary_mean.csv
+
+# === File Temporary Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+
+# === File Helper (tidak perlu di repo) ===
+read_nb.py
+extract_code.py
+refactor_notebook.py
+restore_notebook.py
+generate_perfect_notebook.py
+setup_project.py
+notebook_source.py
