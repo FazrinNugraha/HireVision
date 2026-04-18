@@ -1,10 +1,7 @@
 # === KEAMANAN: Jangan pernah push file ini ke GitHub ===
 .streamlit/secrets.toml
 
-# === File Model Besar (bisa dihasilkan ulang dari notebook) ===
-models/salary_model.pkl
-
-# === Dataset Mentah (upload manual ke Streamlit Cloud atau gunakan Git LFS) ===
+# === Dataset Mentah Opsional (biarkan ini di-ignore kalau tidak dipakai Streamlit) ===
 data/job_salary_mean.csv
 
 # === File Temporary Python ===
