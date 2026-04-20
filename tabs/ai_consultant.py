@@ -32,17 +32,20 @@ def render():
                 f"Kategori pekerjaan: '{prediksi_ctx['kategori']}', lokasi: '{prediksi_ctx['lokasi']}', "
                 f"estimasi gaji pasar: Rp {prediksi_ctx['gaji_prediksi']:,} per bulan "
                 f"(rentang negosiasi wajar Rp {prediksi_ctx['gaji_min']:,} hingga Rp {prediksi_ctx['gaji_max']:,}). "
-                f"Gunakan informasi ini sebagai konteks utama untuk semua jawaban Anda."
+                f"Gunakan informasi ini sebagai konteks utama untuk semua jawaban Anda. "
             )
+            if 'estimasi_kos' in prediksi_ctx:
+                konteks_str += (
+                    f"Selain itu, berdasarkan data prediksi hunian Mamikos, rata-rata harga kos di {prediksi_ctx['lokasi']} "
+                    f"adalah Rp {prediksi_ctx['estimasi_kos']:,} per bulan, yang menghabiskan sekitar {prediksi_ctx['rasio_kos']:.1f}% "
+                    f"dari prediksi gaji pengguna."
+                )
         else:
             konteks_str = "Belum ada data prediksi gaji dari pengguna ini."
 
         system_prompt_dinamis = (
-            "Anda adalah asisten konsultan karir profesional dan ramah yang khusus "
-            "membantu pencari kerja di wilayah Jabodetabek (Indonesia). Tugas Anda menjawab pertanyaan "
-            "seputar negosiasi gaji, tren industri, persiapan wawancara, dan skill set. "
-            "Jawab dengan bahasa Indonesia yang santai tapi profesional. "
-            "Jawaban harus ringkas, tepat sasaran (maksimal 3 paragraf), dan berikan 1-3 bullet points jika perlu. "
+            "Anda adalah asisten konsultan karir profesional dan perencana keuangan untuk pencari kerja di Jabodetabek. Tugas Anda menjawab pertanyaan "
+            "seputar karir, dan SECARA PROAKTIF memberikan 1-2 saran spesifik mengenai strategi finansial relokasi (tempat tinggal/kos) berdasarkan rasio gaji dan biaya hunian yang ada di konteks."
             f"\n\nKONTEKS PENGGUNA SAAT INI: {konteks_str}"
         )
 

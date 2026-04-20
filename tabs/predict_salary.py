@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import load_ml_resources, predict_salary
+from utils import load_ml_resources, predict_salary, predict_kos_price
 
 def render():
     st.header("Kalkulator Estimasi Gaji Pasar")
@@ -127,6 +127,24 @@ def render():
 | **Hasil Akhir** | **Rp {gaji_akhir:,}** | |
                         """)
                         st.caption("_Multiplier mengacu pada data rata-rata industri & survei kompensasi Jabodetabek._")
+
+                    st.markdown("---")
+                    st.subheader("🏠 Analisis Keterjangkauan Hunian")
+
+                    estimasi_kos = predict_kos_price(pilihan_lokasi)
+                    rasio_kos = (estimasi_kos / gaji_akhir) * 100
+
+                    st.metric(label="Estimasi Biaya Kos (Per Bulan)", value=f"Rp {estimasi_kos:,}")
+
+                    if rasio_kos <= 30:
+                        st.success(f"✅ Biaya hunian ideal ({rasio_kos:.1f}% dari gaji). Gaji Anda cukup untuk hidup nyaman di lokasi ini.")
+                    elif rasio_kos > 30 and rasio_kos <= 50:
+                        st.warning(f"⚠️ Biaya hunian cukup tinggi ({rasio_kos:.1f}% dari gaji). Pertimbangkan kos dengan fasilitas dasar atau cari teman sekamar.")
+                    else:
+                        st.error(f"🚨 Beban biaya hidup sangat tinggi ({rasio_kos:.1f}% dari gaji)! Sangat disarankan mencari hunian di wilayah penyangga dan menggunakan KRL/TransJakarta.")
+
+                    st.session_state["last_prediction"]["estimasi_kos"] = estimasi_kos
+                    st.session_state["last_prediction"]["rasio_kos"] = rasio_kos
                 else:
                     st.error("Terjadi masalah saat membaca output model ML.")
     except Exception as e:

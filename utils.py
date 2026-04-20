@@ -60,6 +60,44 @@ def predict_salary(kategori, lokasi, model, kat_enc, lok_enc):
     except Exception as e:
         return None
 
+@st.cache_resource
+def load_housing_resources():
+    kos_model = joblib.load('models/kos_price_model.pkl')
+    region_enc = joblib.load('models/region_encoder.pkl')
+    tipe_kos_enc = joblib.load('models/tipe_kos_encoder.pkl')
+    electricity_enc = joblib.load('models/is_electricity_included_encoder.pkl')
+    return kos_model, region_enc, tipe_kos_enc, electricity_enc
+
+def predict_kos_price(region):
+    kos_model, _, _, _ = load_housing_resources()
+    
+    # Perbaikan Bug: Encoder dari notebook aslinya melakukan fit pada data yang sudah jadi angka,
+    # bukan pada teks kota. Jadi kita bypass encoder yang rusak dan mapping manual ke nilai aslinya.
+    kos_region_mapping = {
+        'Bekasi': 0,
+        'Bogor': 1,
+        'Depok': 2,
+        'Jakarta Barat': 3,
+        'Jakarta Pusat': 4,
+        'Jakarta Selatan': 5,
+        'Jakarta Timur': 6,
+        'Jakarta Utara': 7,
+        'Tangerang': 8,
+        'Tangerang Selatan': 9,
+        'Jakarta Raya (General)': 4  # Mengambil nilai tengah ibukota
+    }
+    
+    region_val = kos_region_mapping.get(region, 4)
+    tipe_kos_val = 0      # 0 = Kos Campur
+    electricity_val = 1   # 1 = Termasuk Listrik
+    
+    try:
+        # Fitur: [region, tipe_kos, is_electricity, rating, rating_count, room_area]
+        prediction = kos_model.predict([[region_val, tipe_kos_val, electricity_val, 4.5, 10, 12.0]])[0]
+        return int(prediction)
+    except Exception as e:
+        return 1600000
+
 # ==========================================
 # 3. KONSULTAN KARIR AI (GROQ)
 # ==========================================
