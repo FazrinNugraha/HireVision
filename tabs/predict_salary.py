@@ -57,20 +57,17 @@ def render():
         if st.button("🔍 Hitung Prediksi Gaji", type="primary", use_container_width=True):
             with st.spinner("Memproses algoritma Random Forest + penyesuaian profil..."):
                 hasil_basis = predict_salary(pilihan_kategori, pilihan_lokasi, model, kat_enc, lok_enc)
-
                 if hasil_basis is not None:
-                    # Ambil nilai multiplier
                     m_level   = level_map[pilihan_level]
                     m_kontrak = kontrak_map[pilihan_kontrak]
                     m_skala   = skala_map[pilihan_skala]
                     total_multiplier = m_level * m_kontrak * m_skala
-
-                    # Hitung gaji akhir yang disesuaikan
                     gaji_akhir = int(hasil_basis * total_multiplier)
                     batas_bawah = int(gaji_akhir * 0.90)
                     batas_atas  = int(gaji_akhir * 1.10)
+                    estimasi_kos = predict_kos_price(pilihan_lokasi)
+                    rasio_kos = (estimasi_kos / gaji_akhir) * 100
 
-                    # Simpan ke session state untuk Tab AI
                     st.session_state["last_prediction"] = {
                         "kategori":       pilihan_kategori,
                         "lokasi":         pilihan_lokasi,
@@ -82,70 +79,73 @@ def render():
                         "gaji_min":       batas_bawah,
                         "gaji_max":       batas_atas,
                         "multiplier":     round(total_multiplier, 2),
+                        "m_level":        m_level,
+                        "m_kontrak":      m_kontrak,
+                        "m_skala":        m_skala,
+                        "estimasi_kos":   estimasi_kos,
+                        "rasio_kos":      rasio_kos
                     }
-
                     st.success("✅ Analisis Selesai! Pindah ke Tab **🤖 AI Consultant** untuk saran personal.")
-                    st.markdown("<br>", unsafe_allow_html=True)
-
-                    # ── Output: 3 kolom metrik ──
-                    r1, r2, r3 = st.columns(3)
-                    with r1:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <h4 style='margin:0;color:#bdc3c7;font-size:13px'>🤖 Gaji Basis Model ML</h4>
-                            <h2 style='margin:8px 0;color:#95a5a6'>Rp {int(hasil_basis):,}</h2>
-                            <p style='margin:0;font-size:11px;color:#7f8c8d'>Output mentah Random Forest</p>
-                        </div>""", unsafe_allow_html=True)
-
-                    with r2:
-                        st.markdown(f"""
-                        <div class="metric-card" style='border:2px solid #2ecc71'>
-                            <h4 style='margin:0;color:#bdc3c7;font-size:13px'>✨ Estimasi Gaji Anda</h4>
-                            <h2 style='margin:8px 0;color:#2ecc71'>Rp {gaji_akhir:,}</h2>
-                            <p style='margin:0;font-size:11px;color:#bdc3c7'>Setelah penyesuaian profil</p>
-                        </div>""", unsafe_allow_html=True)
-
-                    with r3:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <h4 style='margin:0;color:#bdc3c7;font-size:13px'>📊 Rentang Negosiasi</h4>
-                            <h2 style='margin:8px 0;color:#3498db;font-size:18px'>Rp {batas_bawah:,}<br>– Rp {batas_atas:,}</h2>
-                            <p style='margin:0;font-size:11px;color:#7f8c8d'>±10% dari estimasi Anda</p>
-                        </div>""", unsafe_allow_html=True)
-
-                    # ── Breakdown multiplier ──
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    with st.expander("📋 Lihat Rincian Kalkulasi Multiplier"):
-                        st.markdown(f"""
-| Faktor | Pilihan | Multiplier |
-|--------|---------|-----------|
-| Level Pengalaman | {pilihan_level} | `×{m_level}` |
-| Tipe Kontrak | {pilihan_kontrak} | `×{m_kontrak}` |
-| Skala Perusahaan | {pilihan_skala} | `×{m_skala}` |
-| **Total Gabungan** | — | **`×{round(total_multiplier,2)}`** |
-| **Gaji Basis ML** | Rp {int(hasil_basis):,} | |
-| **Hasil Akhir** | **Rp {gaji_akhir:,}** | |
-                        """)
-                        st.caption("_Multiplier mengacu pada data rata-rata industri & survei kompensasi Jabodetabek._")
-
-                    st.markdown("---")
-                    st.subheader("🏠 Analisis Keterjangkauan Hunian")
-
-                    estimasi_kos = predict_kos_price(pilihan_lokasi)
-                    rasio_kos = (estimasi_kos / gaji_akhir) * 100
-
-                    st.metric(label="Estimasi Biaya Kos (Per Bulan)", value=f"Rp {estimasi_kos:,}")
-
-                    if rasio_kos <= 30:
-                        st.success(f"✅ Biaya hunian ideal ({rasio_kos:.1f}% dari gaji). Gaji Anda cukup untuk hidup nyaman di lokasi ini.")
-                    elif rasio_kos > 30 and rasio_kos <= 50:
-                        st.warning(f"⚠️ Biaya hunian cukup tinggi ({rasio_kos:.1f}% dari gaji). Pertimbangkan kos dengan fasilitas dasar atau cari teman sekamar.")
-                    else:
-                        st.error(f"🚨 Beban biaya hidup sangat tinggi ({rasio_kos:.1f}% dari gaji)! Sangat disarankan mencari hunian di wilayah penyangga dan menggunakan KRL/TransJakarta.")
-
-                    st.session_state["last_prediction"]["estimasi_kos"] = estimasi_kos
-                    st.session_state["last_prediction"]["rasio_kos"] = rasio_kos
                 else:
                     st.error("Terjadi masalah saat membaca output model ML.")
+
+        # ── RENDER HASIL (Jika Ada di Session State) ──
+        if "last_prediction" in st.session_state:
+            res = st.session_state["last_prediction"]
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── Output: 3 kolom metrik ──
+            r1, r2, r3 = st.columns(3)
+            with r1:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h4 style='margin:0;color:#bdc3c7;font-size:13px'>🤖 Gaji Basis Model ML</h4>
+                    <h2 style='margin:8px 0;color:#95a5a6'>Rp {res['gaji_basis']:,}</h2>
+                    <p style='margin:0;font-size:11px;color:#7f8c8d'>Output mentah Random Forest</p>
+                </div>""", unsafe_allow_html=True)
+
+            with r2:
+                st.markdown(f"""
+                <div class="metric-card" style='border:2px solid #2ecc71'>
+                    <h4 style='margin:0;color:#bdc3c7;font-size:13px'>✨ Estimasi Gaji Anda</h4>
+                    <h2 style='margin:8px 0;color:#2ecc71'>Rp {res['gaji_prediksi']:,}</h2>
+                    <p style='margin:0;font-size:11px;color:#bdc3c7'>Setelah penyesuaian profil</p>
+                </div>""", unsafe_allow_html=True)
+
+            with r3:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h4 style='margin:0;color:#bdc3c7;font-size:13px'>📊 Rentang Negosiasi</h4>
+                    <h2 style='margin:8px 0;color:#3498db;font-size:18px'>Rp {res['gaji_min']:,}<br>– Rp {res['gaji_max']:,}</h2>
+                    <p style='margin:0;font-size:11px;color:#7f8c8d'>±10% dari estimasi Anda</p>
+                </div>""", unsafe_allow_html=True)
+
+            # ── Breakdown multiplier ──
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander("📋 Lihat Rincian Kalkulasi Multiplier"):
+                st.markdown(f"""
+| Faktor | Pilihan | Multiplier |
+|--------|---------|-----------|
+| Level Pengalaman | {res['level']} | `×{res['m_level']}` |
+| Tipe Kontrak | {res['kontrak']} | `×{res['m_kontrak']}` |
+| Skala Perusahaan | {res['skala']} | `×{res['m_skala']}` |
+| **Total Gabungan** | — | **`×{res['multiplier']}`** |
+| **Gaji Basis ML** | Rp {res['gaji_basis']:,} | |
+| **Hasil Akhir** | **Rp {res['gaji_prediksi']:,}** | |
+                """)
+                st.caption("_Multiplier mengacu pada data rata-rata industri & survei kompensasi Jabodetabek._")
+
+            st.markdown("---")
+            st.subheader("🏠 Analisis Keterjangkauan Hunian")
+
+            st.metric(label=f"Estimasi Biaya Kos (Per Bulan) di {res['lokasi']}", value=f"Rp {res['estimasi_kos']:,}")
+
+            if res['rasio_kos'] <= 30:
+                st.success(f"✅ Biaya hunian ideal ({res['rasio_kos']:.1f}% dari gaji). Gaji Anda cukup untuk hidup nyaman di lokasi ini.")
+            elif res['rasio_kos'] > 30 and res['rasio_kos'] <= 50:
+                st.warning(f"⚠️ Biaya hunian cukup tinggi ({res['rasio_kos']:.1f}% dari gaji). Pertimbangkan kos dengan fasilitas dasar atau cari teman sekamar.")
+            else:
+                st.error(f"🚨 Beban biaya hidup sangat tinggi ({res['rasio_kos']:.1f}% dari gaji)! Sangat disarankan mencari hunian di wilayah penyangga dan menggunakan KRL/TransJakarta.")
+
     except Exception as e:
         st.error(f"Gagal memuat Model: {str(e)}. Pastikan file .pkl lengkap di folder models/")

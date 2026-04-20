@@ -32,6 +32,29 @@ def load_map_data(filepath):
     df['lon'] = df['Lokasi_Clean'].apply(lambda x: COORDINATES.get(x, [-6.2000, 106.8166])[1])
     return df
 
+def calculate_distance(loc1, loc2):
+    """Menghitung jarak lurus (KM) antara dua nama kota menggunakan Haversine Formula"""
+    from math import radians, cos, sin, asin, sqrt
+    
+    # Ambil koordinat
+    coord1 = COORDINATES.get(loc1)
+    coord2 = COORDINATES.get(loc2)
+    
+    if not coord1 or not coord2:
+        return 0
+    
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+    
+    # Haversine formula
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # Radius bumi dalam kilometer
+    return round(c * r, 1)
+
 # ==========================================
 # 2. MODEL MACHINE LEARNING (CACHED)
 # ==========================================
