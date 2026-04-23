@@ -148,4 +148,4 @@ def render():
                 st.error(f"🚨 Beban biaya hidup sangat tinggi ({res['rasio_kos']:.1f}% dari gaji)! Sangat disarankan mencari hunian di wilayah penyangga dan menggunakan KRL/TransJakarta.")
 
     except Exception as e:
-        st.error(f"Gagal memuat Model: {str(e)}. Pastikan file .pkl lengkap di folder models/")
+        st.error(f"Gagal memuat Model: {str(e)}. Pastikan file .pkl lengkap di folder models/salary/")

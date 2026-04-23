@@ -62,9 +62,9 @@ def calculate_distance(loc1, loc2):
 @st.cache_resource
 def load_ml_resources():
     """Memuat Model RF dan Encoder agar tidak reload berulang kali"""
-    model = joblib.load('models/salary_model.pkl')
-    kategori_enc = joblib.load('models/kategori_encoder.pkl')
-    lokasi_enc = joblib.load('models/lokasi_encoder.pkl')
+    model = joblib.load('models/salary/salary_model.pkl')
+    kategori_enc = joblib.load('models/salary/kategori_encoder.pkl')
+    lokasi_enc = joblib.load('models/salary/lokasi_encoder.pkl')
     
     # Ekstrak original string list untuk dropdown UI
     list_kategori = kategori_enc.classes_
@@ -85,10 +85,10 @@ def predict_salary(kategori, lokasi, model, kat_enc, lok_enc):
 
 @st.cache_resource
 def load_housing_resources():
-    kos_model = joblib.load('models/kos_price_model.pkl')
-    region_enc = joblib.load('models/region_encoder.pkl')
-    tipe_kos_enc = joblib.load('models/tipe_kos_encoder.pkl')
-    electricity_enc = joblib.load('models/is_electricity_included_encoder.pkl')
+    kos_model = joblib.load('models/kos/kos_price_model.pkl')
+    region_enc = joblib.load('models/kos/region_encoder.pkl')
+    tipe_kos_enc = joblib.load('models/kos/tipe_kos_encoder.pkl')
+    electricity_enc = joblib.load('models/kos/is_electricity_included_encoder.pkl')
     return kos_model, region_enc, tipe_kos_enc, electricity_enc
 
 def predict_kos_price(region):
