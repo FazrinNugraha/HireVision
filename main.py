@@ -58,7 +58,7 @@ with tab2:
     spatial_map.render()
 
 # -------------------------------------------------------------
-# TAB 3: KONSULTAN KARIR AI (GROQ LLAMA-3)
+# TAB 3: KONSULTAN KARIR AI (GEMINI)
 # -------------------------------------------------------------
 with tab3:
     ai_consultant.render()

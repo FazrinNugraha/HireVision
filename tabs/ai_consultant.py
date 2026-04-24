@@ -1,14 +1,14 @@
 import streamlit as st
-from utils import get_groq_client, chat_with_career_bot
+from utils import get_gemini_client, chat_with_career_bot
 
 def render():
     st.header("Konsultan Karir Virtual 🤖")
     st.write("Tanyakan masalah wawancara Anda, bedah CV Anda, atau tips nego gaji ke ahlinya!")
 
-    client = get_groq_client()
+    client = get_gemini_client()
 
     if client is None:
-        st.warning("⚠️ Anda Belum Memasukkan `GROQ_API_KEY` di `.streamlit/secrets.toml`. Chatbot di-nonaktifkan sementara.")
+        st.warning("⚠️ Anda Belum Memasukkan `GEMINI_API_KEY` di `.streamlit/secrets.toml`. Chatbot di-nonaktifkan sementara.")
     else:
         # ── BANNER KONTEKS: Tampilkan jika user sudah melakukan prediksi ──
         prediksi_ctx = st.session_state.get("last_prediction")
@@ -82,10 +82,13 @@ def render():
 
                 if stream:
                     for chunk in stream:
-                        delta = chunk.choices[0].delta.content
-                        if delta:
-                            full_response += delta
-                            placeholder_resp.markdown(full_response + "▌")
+                        try:
+                            delta = chunk.text
+                            if delta:
+                                full_response += delta
+                                placeholder_resp.markdown(full_response + "▌")
+                        except Exception:
+                            pass
                     placeholder_resp.markdown(full_response)
 
             if full_response:

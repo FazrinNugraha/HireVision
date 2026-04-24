@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import joblib
-from groq import Groq
+import google.generativeai as genai
 import os
 
 # ==========================================
@@ -122,21 +122,22 @@ def predict_kos_price(region):
         return 1600000
 
 # ==========================================
-# 3. KONSULTAN KARIR AI (GROQ)
+# 3. KONSULTAN KARIR AI (GEMINI)
 # ==========================================
 
-def get_groq_client():
-    """Memanggil client Groq menggunakan token dari secrets.toml"""
-    api_key = st.secrets.get("GROQ_API_KEY")
+def get_gemini_client():
+    """Memanggil konfigurasi Gemini menggunakan token dari secrets.toml"""
+    api_key = st.secrets.get("GEMINI_API_KEY")
+        
     if not api_key or len(api_key) < 10:
         return None
-    return Groq(api_key=api_key)
+        
+    genai.configure(api_key=api_key)
+    return True
 
 def chat_with_career_bot(client, user_message, chat_history, system_prompt_text=None):
     """Membuat interaksi chat dengan persona konsultan + konteks dari prediksi gaji"""
 
-    # Gunakan system prompt dari pemanggil (main.py) jika tersedia,
-    # fallback ke prompt generik jika tidak ada konteks prediksi
     if system_prompt_text is None:
         system_prompt_text = (
             "Anda adalah asisten konsultan karir profesional dan ramah yang khusus "
@@ -146,19 +147,19 @@ def chat_with_career_bot(client, user_message, chat_history, system_prompt_text=
             "Jawaban harus ringkas, tepat sasaran (maksimal 3 paragraf), dan berikan 1-3 bullet points jika perlu."
         )
 
-    system_prompt = {"role": "system", "content": system_prompt_text}
-
-    # Gabung System, History, dan Pertanyaan baru
-    messages = [system_prompt] + chat_history + [{"role": "user", "content": user_message}]
-
     try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.6,
-            max_tokens=1024,
-            stream=True
-        )
+        model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_prompt_text)
+        
+        # Mengubah format history agar sesuai dengan struktur Gemini
+        gemini_history = []
+        for msg in chat_history:
+            role = "model" if msg["role"] == "assistant" else "user"
+            if msg["role"] == "system":
+                continue
+            gemini_history.append({"role": role, "parts": [msg["content"]]})
+            
+        chat = model.start_chat(history=gemini_history)
+        response = chat.send_message(user_message, stream=True)
         return response
     except Exception as e:
         st.error(f"Error AI: {str(e)}")
