@@ -2,7 +2,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import pandas as pd
-from utils import load_map_data, predict_kos_price, calculate_distance
+from utils import load_map_data, predict_kos_price, calculate_distance, load_ml_resources
 
 def render():
     st.markdown("""
@@ -24,64 +24,7 @@ def render():
         raw_kota["Harga_Kos_Estimasi"] = raw_kota["Lokasi_Clean"].apply(predict_kos_price)
         df_kota = raw_kota.sort_values(by="Jumlah_Lowongan", ascending=False).reset_index(drop=True)
 
-        # ── 1. STRATEGI HUNIAN (Tetap Nomor Satu) ──
-        st.markdown("""
-        <div class="sec-hd">
-            <div class="sec-hd-dot"></div>
-            <span class="sec-hd-text">🚆 Strategi Hunian (Opsi Komuter)</span>
-            <div class="sec-hd-line"></div>
-        </div>
-        <p style="color:rgba(255,255,255,0.38);font-size:0.82rem;margin:-8px 0 14px 0;">
-            Tetap bekerja di pusat bisnis, tinggal di wilayah penyangga untuk memaksimalkan tabungan.
-        </p>
-        """, unsafe_allow_html=True)
-
-        daftar_kota = sorted(df_kota['Lokasi_Clean'].tolist())
-        pred_lokasi = st.session_state.get("last_prediction", {}).get("lokasi", "")
-        default_loc = pred_lokasi if pred_lokasi in daftar_kota else 'Jakarta Selatan'
-        idx_default = daftar_kota.index(default_loc) if default_loc in daftar_kota else 0
-
-        lokasi_kerja = st.selectbox("Lokasi Kantor Incaran Anda", daftar_kota, index=idx_default)
-
-        data_target = df_kota[df_kota['Lokasi_Clean'] == lokasi_kerja].iloc[0]
-        kos_kerja = data_target['Harga_Kos_Estimasi']
-
-        alternatif = df_kota[df_kota['Harga_Kos_Estimasi'] <= (kos_kerja - 50000)].sort_values(by='Harga_Kos_Estimasi', ascending=True)
-
-        if not alternatif.empty:
-            st.info(f"Jika Anda tetap bekerja di **{lokasi_kerja}**, Anda bisa menghemat banyak uang dengan tinggal di kota-kota penyangga berikut:")
-            cols = st.columns(min(3, len(alternatif)))
-            for i, (idx, row) in enumerate(alternatif.head(3).iterrows()):
-                hemat_rupiah = kos_kerja - row['Harga_Kos_Estimasi']
-                jarak_km = calculate_distance(lokasi_kerja, row['Lokasi_Clean'])
-                menit = int((jarak_km / 25) * 60)
-
-                with cols[i]:
-                    st.markdown(f"""
-                    <div class="komuter-card">
-                        <div style="font-weight:700;font-size:15px;color:#fff;margin-bottom:10px;">🏠 Kost di {row['Lokasi_Clean']}</div>
-                        <div style="font-weight:800;font-size:1.2rem;color:#2ecc71;margin-bottom:12px;">Hemat Rp {int(hemat_rupiah):,}/bln</div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <span style="background:rgba(52,152,219,0.2);border:1px solid rgba(52,152,219,0.4);color:#5dade2;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">📍 ±{jarak_km} KM</span>
-                            <span style="background:rgba(230,126,34,0.2);border:1px solid rgba(230,126,34,0.4);color:#f0a500;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">⏱️ ~{menit} mnt</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-        else:
-            st.success(f"🌟 **{lokasi_kerja}** sudah merupakan wilayah dengan biaya hunian paling ekonomis!")
-
-        with st.expander("📋 Lihat Daftar Rata-Rata Harga Kos Seluruh Wilayah"):
-            st.markdown("Berikut adalah tabel perbandingan harga kos rata-rata di Jabodetabek berdasarkan prediksi model AI:")
-            df_tabel = df_kota[['Lokasi_Clean', 'Harga_Kos_Estimasi']].copy()
-            df_tabel = df_tabel.sort_values(by='Harga_Kos_Estimasi', ascending=True)
-            df_tabel.columns = ['Wilayah', 'Estimasi Harga Sebulan']
-            df_tabel['Estimasi Harga Sebulan'] = df_tabel['Estimasi Harga Sebulan'].apply(lambda x: f"Rp {x:,}")
-            st.table(df_tabel)
-            st.caption("⚠️ **Catatan:** Harga di atas adalah estimasi untuk *Kamar Luas 12m², Termasuk Listrik, dan Rating Tinggi*.")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ── 2. FILTER INDUSTRI ──
+        # ── 1. FILTER INDUSTRI ──
         st.markdown("""
         <div class="sec-hd">
             <div class="sec-hd-dot"></div>
@@ -119,6 +62,55 @@ def render():
         plt.xticks(rotation=30, ha="right")
         plt.tight_layout()
         st.pyplot(fig2)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── 2. AI MARKET LOGIC (FEATURE IMPORTANCES) ──
+        st.markdown("""
+        <div class="sec-hd">
+            <div class="sec-hd-dot"></div>
+            <span class="sec-hd-text">🧠 AI Market Logic: Penentu Gaji Terbesar</span>
+            <div class="sec-hd-line"></div>
+        </div>
+        <p style="color:rgba(255,255,255,0.38);font-size:0.82rem;margin:-8px 0 14px 0;">
+            Grafik ini menjelaskan bobot kepentingan fitur (feature importance) yang digunakan model Machine Learning kami dalam menentukan prediksi gaji.
+        </p>
+        """, unsafe_allow_html=True)
+
+        try:
+            model, _, _, _, _ = load_ml_resources()
+
+            feature_names = ['Kategori Industri', 'Lokasi']
+            importances = model.feature_importances_
+
+            df_imp = pd.DataFrame({
+                'Fitur': feature_names,
+                'Kepentingan': importances
+            }).sort_values(by='Kepentingan', ascending=True)
+
+            fig_fi, ax_fi = plt.subplots(figsize=(10, 3))
+            
+            fig_fi.patch.set_facecolor("#0e1117")
+            ax_fi.set_facecolor("#0e1117")
+
+            bars = ax_fi.barh(df_imp['Fitur'], df_imp['Kepentingan'], color="#FF416C", height=0.4)
+
+            for bar in bars:
+                width = bar.get_width()
+                ax_fi.text(width + 0.01, bar.get_y() + bar.get_height()/2, 
+                           f"{width:.1%}", 
+                           ha='left', va='center', color='white', fontweight='bold')
+
+            ax_fi.set_xlabel("Bobot Pengaruh", color="white")
+            ax_fi.tick_params(colors="white")
+            ax_fi.spines[:].set_visible(False)
+            ax_fi.xaxis.set_major_formatter(mticker.PercentFormatter(1.0))
+
+            plt.tight_layout()
+            st.pyplot(fig_fi)
+
+        except Exception as e:
+            st.error(f"Gagal memuat visualisasi feature importance: {str(e)}")
 
         st.markdown("<br>", unsafe_allow_html=True)
 

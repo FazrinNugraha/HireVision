@@ -1,5 +1,6 @@
 import streamlit as st
-from utils import load_ml_resources, predict_salary, predict_kos_price
+import pandas as pd
+from utils import load_ml_resources, predict_salary, predict_kos_price, load_map_data, calculate_distance
 
 def render():
     # ── Section Header ──
@@ -204,6 +205,60 @@ def render():
                 st.warning(f"⚠️ Biaya hunian cukup tinggi ({res['rasio_kos']:.1f}% dari gaji). Pertimbangkan kos dengan fasilitas dasar atau cari teman sekamar.")
             else:
                 st.error(f"🚨 Beban biaya hidup sangat tinggi ({res['rasio_kos']:.1f}% dari gaji)! Sangat disarankan mencari hunian di wilayah penyangga dan menggunakan KRL/TransJakarta.")
+
+            # ── STRATEGI HUNIAN (Opsi Komuter) ──
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="sec-hd">
+                <div class="sec-hd-dot"></div>
+                <span class="sec-hd-text">🚆 Strategi Hunian (Opsi Komuter)</span>
+                <div class="sec-hd-line"></div>
+            </div>
+            <p style="color:rgba(255,255,255,0.38);font-size:0.82rem;margin:-8px 0 14px 0;">
+                Tinggal di wilayah penyangga untuk menghemat biaya hidup bulanan sambil tetap bekerja di pusat bisnis.
+            </p>
+            """, unsafe_allow_html=True)
+
+            df_map = load_map_data('data/data_peta_jabodetabek.csv')
+            raw_kota = df_map.groupby("Lokasi_Clean")["Jumlah_Lowongan"].sum().reset_index()
+            raw_kota["Harga_Kos_Estimasi"] = raw_kota["Lokasi_Clean"].apply(predict_kos_price)
+            df_kota = raw_kota.sort_values(by="Jumlah_Lowongan", ascending=False).reset_index(drop=True)
+
+            lokasi_kerja = res['lokasi']
+            kos_kerja = res['estimasi_kos']
+
+            alternatif = df_kota[df_kota['Harga_Kos_Estimasi'] <= (kos_kerja - 50000)].sort_values(by='Harga_Kos_Estimasi', ascending=True)
+
+            if not alternatif.empty:
+                st.info(f"💡 Anda bisa menghemat uang jika tinggal di kota-kota penyangga berikut dan komuter ke **{lokasi_kerja}**:")
+                cols = st.columns(min(3, len(alternatif)))
+                for i, (idx, row) in enumerate(alternatif.head(3).iterrows()):
+                    hemat_rupiah = kos_kerja - row['Harga_Kos_Estimasi']
+                    jarak_km = calculate_distance(lokasi_kerja, row['Lokasi_Clean'])
+                    menit = int((jarak_km / 25) * 60)
+
+                    with cols[i]:
+                        st.markdown(f"""
+                        <div class="komuter-card">
+                            <div style="font-weight:700;font-size:15px;color:#fff;margin-bottom:10px;">🏠 Kost di {row['Lokasi_Clean']}</div>
+                            <div style="font-weight:800;font-size:1.2rem;color:#2ecc71;margin-bottom:12px;">Hemat Rp {int(hemat_rupiah):,}/bln</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <span style="background:rgba(52,152,219,0.2);border:1px solid rgba(52,152,219,0.4);color:#5dade2;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">📍 ±{jarak_km} KM</span>
+                                <span style="background:rgba(230,126,34,0.2);border:1px solid rgba(230,126,34,0.4);color:#f0a500;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">⏱️ ~{menit} mnt</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.success(f"🌟 **{lokasi_kerja}** sudah merupakan wilayah dengan biaya hunian paling ekonomis! Tidak perlu pindah lokasi kos.")
+
+            with st.expander("📋 Lihat Daftar Rata-Rata Harga Kos Seluruh Wilayah"):
+                st.markdown("Berikut adalah tabel perbandingan harga kos rata-rata di Jabodetabek berdasarkan prediksi model AI:")
+                df_tabel = df_kota[['Lokasi_Clean', 'Harga_Kos_Estimasi']].copy()
+                df_tabel = df_tabel.sort_values(by='Harga_Kos_Estimasi', ascending=True)
+                df_tabel.columns = ['Wilayah', 'Estimasi Harga Sebulan']
+                df_tabel['Estimasi Harga Sebulan'] = df_tabel['Estimasi Harga Sebulan'].apply(lambda x: f"Rp {x:,}")
+                st.table(df_tabel)
+                st.caption("⚠️ **Catatan:** Harga di atas adalah estimasi untuk *Kamar Luas 12m², Termasuk Listrik, dan Rating Tinggi*.")
 
     except Exception as e:
         st.error(f"Gagal memuat Model: {str(e)}. Pastikan file .pkl lengkap di folder models/salary/")
