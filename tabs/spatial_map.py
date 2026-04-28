@@ -78,14 +78,28 @@ def render():
         """, unsafe_allow_html=True)
 
         try:
-            model, _, _, _, _ = load_ml_resources()
+            model, kolom_fitur, _, _ = load_ml_resources()
 
-            feature_names = ['Kategori Industri', 'Lokasi']
             importances = model.feature_importances_
+
+            # Aggregate importances by original feature category
+            imp_lokasi = sum([imp for imp, col in zip(importances, kolom_fitur) if col.startswith('Lokasi')])
+            imp_kategori = sum([imp for imp, col in zip(importances, kolom_fitur) if col.startswith('Kategori')])
+            imp_senioritas = sum([imp for imp, col in zip(importances, kolom_fitur) if col.startswith('Senioritas')])
+            
+            # Normalize to ensure they sum to 1.0 just in case
+            total_imp = imp_lokasi + imp_kategori + imp_senioritas
+            if total_imp > 0:
+                imp_lokasi /= total_imp
+                imp_kategori /= total_imp
+                imp_senioritas /= total_imp
+
+            feature_names = ['Kategori Industri', 'Lokasi', 'Senioritas']
+            agg_importances = [imp_kategori, imp_lokasi, imp_senioritas]
 
             df_imp = pd.DataFrame({
                 'Fitur': feature_names,
-                'Kepentingan': importances
+                'Kepentingan': agg_importances
             }).sort_values(by='Kepentingan', ascending=True)
 
             fig_fi, ax_fi = plt.subplots(figsize=(10, 3))

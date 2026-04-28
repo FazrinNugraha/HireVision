@@ -17,7 +17,7 @@ def render():
     """, unsafe_allow_html=True)
 
     try:
-        model, kat_enc, lok_enc, list_kategori, list_lokasi = load_ml_resources()
+        model, kolom_fitur, list_kategori, list_lokasi = load_ml_resources()
 
         # ── INPUT CARD 1: Parameter Utama ──
         st.markdown("""
@@ -52,11 +52,11 @@ def render():
 
         with cola:
             level_map = {
-                "🎓 Fresh Graduate (0–1 thn)": 0.75,
-                "📈 Junior (1–3 thn)": 0.90,
-                "💼 Mid-Level (3–5 thn)": 1.10,
-                "🏆 Senior (5–8 thn)": 1.35,
-                "🎖️ Expert / Lead (8+ thn)": 1.70,
+                "🎓 Fresh Graduate (0–1 thn)": {"senioritas": "Entry-Level / Junior", "m_level": 0.85},
+                "📈 Junior (1–3 thn)": {"senioritas": "Entry-Level / Junior", "m_level": 1.00},
+                "💼 Mid-Level (3–5 thn)": {"senioritas": "Mid-Level/Staff", "m_level": 1.00},
+                "🏆 Senior (5–8 thn)": {"senioritas": "Senior/Managerial", "m_level": 1.00},
+                "🎖️ Expert / Lead (8+ thn)": {"senioritas": "Senior/Managerial", "m_level": 1.25},
             }
             pilihan_level = st.selectbox("Level Pengalaman", list(level_map.keys()))
 
@@ -81,10 +81,12 @@ def render():
         st.markdown("<br>", unsafe_allow_html=True)
 
         if st.button("🔍 Hitung Prediksi Gaji", type="primary", use_container_width=True):
-            with st.spinner("Memproses algoritma Random Forest + penyesuaian profil..."):
-                hasil_basis = predict_salary(pilihan_kategori, pilihan_lokasi, model, kat_enc, lok_enc)
+            with st.spinner("Memproses algoritma XGBoost + penyesuaian profil..."):
+                level_data = level_map[pilihan_level]
+                senioritas_val = level_data["senioritas"]
+                hasil_basis = predict_salary(pilihan_kategori, pilihan_lokasi, senioritas_val, model, kolom_fitur)
                 if hasil_basis is not None:
-                    m_level   = level_map[pilihan_level]
+                    m_level   = level_data["m_level"]
                     m_kontrak = kontrak_map[pilihan_kontrak]
                     m_skala   = skala_map[pilihan_skala]
                     total_multiplier = m_level * m_kontrak * m_skala
@@ -154,7 +156,7 @@ def render():
 <div class="metric-card">
     <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">🤖 Gaji Basis Model ML</p>
     <h2 style="margin:12px 0 8px 0;color:rgba(255,255,255,0.65);font-size:1.3rem;font-weight:700;">Rp {res['gaji_basis']:,}</h2>
-    <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.28);">Output mentah Random Forest</p>
+    <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.28);">Output mentah XGBoost</p>
 </div>""", unsafe_allow_html=True)
 
             with r2:

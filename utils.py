@@ -61,26 +61,49 @@ def calculate_distance(loc1, loc2):
 
 @st.cache_resource
 def load_ml_resources():
-    """Memuat Model RF dan Encoder agar tidak reload berulang kali"""
-    model = joblib.load('models/salary/salary_model.pkl')
-    kategori_enc = joblib.load('models/salary/kategori_encoder.pkl')
-    lokasi_enc = joblib.load('models/salary/lokasi_encoder.pkl')
+    """Memuat Model XGBoost dan Kolom Fitur agar tidak reload berulang kali"""
+    import xgboost as xgb
+    model = joblib.load('models/salary/salary_model_xgboost.pkl')
+    kolom_fitur = joblib.load('models/salary/kolom_fitur_model.pkl')
     
-    # Ekstrak original string list untuk dropdown UI
-    list_kategori = kategori_enc.classes_
-    list_lokasi = lokasi_enc.classes_
+    list_lokasi = [
+        'Bekasi', 'Bogor', 'Depok', 'Jakarta Barat', 'Jakarta Pusat', 
+        'Jakarta Raya (General)', 'Jakarta Selatan', 'Jakarta Timur', 
+        'Jakarta Utara', 'Tangerang', 'Tangerang Selatan'
+    ]
     
-    return model, kategori_enc, lokasi_enc, list_kategori, list_lokasi
+    list_kategori = [
+        'Administrative & Customer Service', 'Creative, Design & Media', 
+        'Engineering & Manufacturing', 'Finance & Accounting', 
+        'HR & General Affairs', 'Healthcare & Medical', 'IT, Tech & Data', 
+        'Lainnya / Umum', 'Logistics & Supply Chain', 'Management & Supervisor', 
+        'Retail, F&B & Hospitality', 'Sales & Marketing'
+    ]
+    
+    return model, kolom_fitur, list_kategori, list_lokasi
 
-def predict_salary(kategori, lokasi, model, kat_enc, lok_enc):
-    """Menerjemahkan teks jadi angka lalu memprediksi gaji"""
+def predict_salary(kategori, lokasi, senioritas, model, kolom_fitur):
+    """Menerjemahkan teks jadi array One-Hot lalu memprediksi gaji dengan XGBoost"""
     try:
-        k_encoded = kat_enc.transform([kategori])
-        l_encoded = lok_enc.transform([lokasi])
-        # Format input X ke mode DataFrame / 2D Array
-        pred_value = model.predict([[k_encoded[0], l_encoded[0]]])[0]
-        return pred_value
+        import pandas as pd
+        input_data = {col: 0 for col in kolom_fitur}
+        
+        if f'Lokasi_Clean_{lokasi}' in input_data:
+            input_data[f'Lokasi_Clean_{lokasi}'] = 1
+            
+        if f'Kategori_Pekerjaan_{kategori}' in input_data:
+            input_data[f'Kategori_Pekerjaan_{kategori}'] = 1
+            
+        if f'Senioritas_{senioritas}' in input_data:
+            input_data[f'Senioritas_{senioritas}'] = 1
+            
+        df_input = pd.DataFrame([input_data])[kolom_fitur]
+        pred_value = model.predict(df_input)[0]
+        # XGBoost model trained on natural log of target variable to handle skewness, apply exp() back
+        import numpy as np
+        return float(np.exp(pred_value))
     except Exception as e:
+        st.error(f"Error prediksi ML: {e}")
         return None
 
 @st.cache_resource
@@ -115,8 +138,11 @@ def predict_kos_price(region):
     electricity_val = 1   # 1 = Termasuk Listrik
     
     try:
-        # Fitur: [region, tipe_kos, is_electricity, rating, rating_count, room_area]
-        prediction = kos_model.predict([[region_val, tipe_kos_val, electricity_val, 4.5, 10, 12.0]])[0]
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            # Fitur: [region, tipe_kos, is_electricity, rating, rating_count, room_area]
+            prediction = kos_model.predict([[region_val, tipe_kos_val, electricity_val, 4.5, 10, 12.0]])[0]
         return int(prediction)
     except Exception as e:
         return 1600000
