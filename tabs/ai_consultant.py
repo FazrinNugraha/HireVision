@@ -39,8 +39,8 @@ def render():
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
         <div style="flex:1;min-width:200px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.05);padding:14px;border-radius:10px;">
             <div style="color:rgba(255,255,255,0.45);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📍 Posisi &amp; Lokasi</div>
-            <div style="color:rgba(255,255,255,0.9);font-size:14px;font-weight:600;margin-bottom:2px;">{prediksi_ctx['kategori']}</div>
-            <div style="color:rgba(255,255,255,0.5);font-size:12px;">di {prediksi_ctx['lokasi']}</div>
+            <div style="color:rgba(255,255,255,0.9);font-size:14px;font-weight:600;margin-bottom:2px;">{prediksi_ctx['judul']}</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:12px;">{prediksi_ctx.get('perusahaan','—')} · di {prediksi_ctx['lokasi']}</div>
         </div>
         <div style="flex:1;min-width:200px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.05);padding:14px;border-radius:10px;">
             <div style="color:rgba(255,255,255,0.45);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">👤 Profil Pekerja</div>
@@ -74,7 +74,8 @@ def render():
         if prediksi_ctx:
             konteks_str = (
                 f"Pengguna baru saja menggunakan fitur prediksi gaji dan mendapatkan hasil berikut: "
-                f"Kategori pekerjaan: '{prediksi_ctx['kategori']}', lokasi: '{prediksi_ctx['lokasi']}', "
+                f"Posisi/Jabatan: '{prediksi_ctx['judul']}', Perusahaan: '{prediksi_ctx.get('perusahaan','—')}', "
+                f"kota penempatan: '{prediksi_ctx.get('umk_label', prediksi_ctx.get('lokasi',''))}', UMK kota: {prediksi_ctx.get('umk_kota','')}, "
                 f"estimasi gaji pasar: Rp {prediksi_ctx['gaji_prediksi']:,} per bulan "
                 f"(rentang negosiasi wajar Rp {prediksi_ctx['gaji_min']:,} hingga Rp {prediksi_ctx['gaji_max']:,}). "
                 f"Gunakan informasi ini sebagai konteks utama untuk semua jawaban Anda. "
@@ -98,7 +99,7 @@ def render():
         if "messages" not in st.session_state:
             salam_awal = (
                 f"Halo! Saya Konsultan Karir Virtual Anda. "
-                + (f"Saya sudah melihat hasil prediksi Anda untuk posisi **{prediksi_ctx['kategori']}** di **{prediksi_ctx['lokasi']}** "
+                + (f"Saya sudah melihat hasil prediksi Anda untuk posisi **{prediksi_ctx['judul']}** di **{prediksi_ctx['lokasi']}** "
                    f"dengan estimasi gaji **Rp {prediksi_ctx['gaji_prediksi']:,}**. Ada pertanyaan seputar ini atau topik karir lainnya?"
                    if prediksi_ctx else
                    "Ada yang bisa saya bantu terkait karir Anda di Jabodetabek hari ini?")

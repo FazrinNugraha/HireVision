@@ -10,14 +10,14 @@ def render():
             Kalkulator Estimasi Gaji Pasar
         </h2>
         <p style="color:rgba(255,255,255,0.45);font-size:0.9rem;margin:0;">
-            Estimasi gaji berdasarkan kategori industri, lokasi, pengalaman, tipe kontrak, dan skala perusahaan.
+            Estimasi gaji berdasarkan jabatan, perusahaan, lokasi, pengalaman, tipe kontrak, dan skala perusahaan.
         </p>
     </div>
     <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:18px 0 24px 0;">
     """, unsafe_allow_html=True)
 
     try:
-        model, kolom_fitur, list_kategori, list_lokasi = load_ml_resources()
+        resources, kolom_fitur, list_kategori, list_lokasi = load_ml_resources()
 
         # ── INPUT CARD 1: Parameter Utama ──
         st.markdown("""
@@ -30,9 +30,55 @@ def render():
 
         col1, col2 = st.columns(2)
         with col1:
-            pilihan_kategori = st.selectbox("Kategori Industri / Jabatan", list_kategori)
+            pilihan_judul = st.text_input(
+                "Judul / Posisi Pekerjaan",
+                placeholder="Contoh: Senior Data Scientist, HR Manager, Full Stack Developer...",
+                help="Ketik jabatan pekerjaan yang ingin diprediksi gajinya. Semakin spesifik semakin akurat."
+            )
         with col2:
-            pilihan_lokasi = st.selectbox("Kota Penempatan", list_lokasi)
+            company_size_dict = resources['encoder']['company_size_dict']
+
+            pilihan_perusahaan = st.text_input(
+                "Nama Perusahaan (Opsional)",
+                placeholder="Contoh: PT XL Axiata Tbk, Dexa Group, EUROMEDICA GROUP...",
+                help="Ketik nama perusahaan. Jika dikenal model, prediksi lebih akurat. Jika tidak, model pakai rata-rata pasar."
+            )
+
+            # Status pengenalan perusahaan secara real-time
+            if pilihan_perusahaan.strip():
+                jumlah_data = company_size_dict.get(pilihan_perusahaan.strip(), 0)
+                if jumlah_data >= 10:
+                    st.caption(f"✅ Dikenal model — **{jumlah_data} data** ditemukan, prediksi sangat akurat.")
+                elif jumlah_data >= 3:
+                    st.caption(f"⚠️ Dikenal model — **{jumlah_data} data** ditemukan, prediksi cukup akurat.")
+                elif jumlah_data > 0:
+                    st.caption(f"ℹ️ Data sangat sedikit ({jumlah_data}) — model pakai rata-rata pasar sebagai acuan.")
+                else:
+                    st.caption("❓ Perusahaan tidak dikenal model — prediksi berdasarkan rata-rata pasar umum.")
+            else:
+                st.caption("ℹ️ Kosongkan jika tidak ingin spesifik — model pakai rata-rata pasar.")
+
+            top_companies = sorted(
+                {k: v for k, v in company_size_dict.items() if k not in {"Pengiklan Anonim", "Anonymous", "Confidential"}}.items(),
+                key=lambda x: x[1], reverse=True
+            )[:30]
+            with st.expander("💡 Contoh perusahaan yang dikenal model"):
+                items_html = "".join([
+                    f'<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.07);font-size:13px;">'
+                    f'<span style="color:rgba(255,255,255,0.9);font-weight:600;">{nama}</span>'
+                    f'<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:8px;">({count} data)</span>'
+                    f'</div>'
+                    for nama, count in top_companies
+                ])
+                st.markdown(
+                    f'<div style="max-height:140px;overflow-y:auto;padding:4px 8px;">{items_html}</div>',
+                    unsafe_allow_html=True
+                )
+
+
+
+
+
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -51,75 +97,90 @@ def render():
         cola, colb, colc = st.columns(3)
 
         with cola:
+            # Sumber: BPS Sakernas 2023 — Rata-rata upah buruh berdasarkan pendidikan
+            pendidikan_map = {
+                "🎓 SMA / SMK":         {"m_pendidikan": 0.78, "label": "SMA/SMK"},
+                "🏅 Diploma (D3/D4)":  {"m_pendidikan": 0.88, "label": "Diploma"},
+                "🎓 S1 / Sarjana":      {"m_pendidikan": 1.00, "label": "S1/Sarjana"},
+                "🎖️ S2 / Magister ke atas": {"m_pendidikan": 1.25, "label": "S2+"},
+            }
+            pilihan_pendidikan = st.selectbox(
+                "Pendidikan Terakhir",
+                list(pendidikan_map.keys()),
+                index=2,
+                help="Sumber: BPS Sakernas 2023. Tingkat pendidikan berpengaruh signifikan terhadap rentang gaji yang ditawarkan."
+            )
+            st.caption(f"Multiplier Sakernas BPS: ×{pendidikan_map[pilihan_pendidikan]['m_pendidikan']}")
+
+        with colb:
             level_map = {
-                "🎓 Fresh Graduate (0–1 thn)": {"senioritas": "Entry-Level / Junior", "m_level": 0.85},
-                "📈 Junior (1–3 thn)": {"senioritas": "Entry-Level / Junior", "m_level": 1.00},
-                "💼 Mid-Level (3–5 thn)": {"senioritas": "Mid-Level/Staff", "m_level": 1.00},
-                "🏆 Senior (5–8 thn)": {"senioritas": "Senior/Managerial", "m_level": 1.00},
-                "🎖️ Expert / Lead (8+ thn)": {"senioritas": "Senior/Managerial", "m_level": 1.25},
+                "🌱 Fresh Graduate (0–1 thn)":  {"senioritas": "Junior/Entry",      "m_level": 0.85},
+                "📈 Junior – Mid (1–4 thn)":    {"senioritas": "Mid-Level/Staff",   "m_level": 0.95},
+                "🏆 Senior (4–8 thn)":           {"senioritas": "Senior/Managerial", "m_level": 1.00},
+                "🎖️ Expert / Lead (8+ thn)":    {"senioritas": "Senior/Managerial", "m_level": 1.20},
             }
             pilihan_level = st.selectbox("Level Pengalaman", list(level_map.keys()))
 
-        with colb:
+        with colc:
             kontrak_map = {
-                "📝 Magang / Internship": 0.50,
-                "🔄 Freelance / Project": 0.85,
-                "📋 Kontrak (1–2 thn)": 0.95,
+                "📝 Magang / Internship":  0.50,
+                "🔄 Freelance / Project":  0.85,
+                "📋 Kontrak (1–2 thn)":    0.95,
                 "🏢 Permanen / Full-Time": 1.00,
             }
             pilihan_kontrak = st.selectbox("Tipe Kontrak", list(kontrak_map.keys()))
 
-        with colc:
-            skala_map = {
-                "🚀 Startup / UMKM": 0.85,
-                "🏗️ Perusahaan Menengah": 1.00,
-                "🏢 Korporasi Lokal Besar": 1.20,
-                "🌐 MNC / Multinasional": 1.40,
-            }
-            pilihan_skala = st.selectbox("Skala Perusahaan", list(skala_map.keys()))
-
         st.markdown("<br>", unsafe_allow_html=True)
 
         if st.button("🔍 Hitung Prediksi Gaji", type="primary", use_container_width=True):
-            with st.spinner("Memproses algoritma XGBoost + penyesuaian profil..."):
-                level_data = level_map[pilihan_level]
-                senioritas_val = level_data["senioritas"]
-                hasil_basis = predict_salary(pilihan_kategori, pilihan_lokasi, senioritas_val, model, kolom_fitur)
-                if hasil_basis is not None:
-                    m_level   = level_data["m_level"]
-                    m_kontrak = kontrak_map[pilihan_kontrak]
-                    m_skala   = skala_map[pilihan_skala]
-                    total_multiplier = m_level * m_kontrak * m_skala
-                    gaji_akhir = int(hasil_basis * total_multiplier)
-                    batas_bawah = int(gaji_akhir * 0.90)
-                    batas_atas  = int(gaji_akhir * 1.10)
-                    estimasi_kos = predict_kos_price(pilihan_lokasi)
-                    rasio_kos = (estimasi_kos / gaji_akhir) * 100
+            if not pilihan_judul.strip():
+                st.warning("⚠️ Mohon isi Judul Pekerjaan terlebih dahulu.")
+            else:
+                with st.spinner("Memproses LightGBM + penyesuaian profil..."):
+                    level_data     = level_map[pilihan_level]
+                    senioritas_val = level_data["senioritas"]
+                    hasil_basis = predict_salary(
+                        judul_pekerjaan=pilihan_judul.strip(),
+                        perusahaan=pilihan_perusahaan.strip() if pilihan_perusahaan.strip() else "__unknown__",
+                        lokasi="Jakarta Selatan",
+                        senioritas=senioritas_val,
+                        resources=resources
+                    )
+                    if hasil_basis is not None:
+                        m_pendidikan = pendidikan_map[pilihan_pendidikan]["m_pendidikan"]
+                        m_level      = level_data["m_level"]
+                        m_kontrak    = kontrak_map[pilihan_kontrak]
+                        total_multiplier = m_pendidikan * m_level * m_kontrak
+                        gaji_akhir   = int(hasil_basis * total_multiplier)
+                        batas_bawah  = int(gaji_akhir * 0.90)
+                        batas_atas   = int(gaji_akhir * 1.10)
+                        estimasi_kos = predict_kos_price("Jakarta Selatan")
+                        rasio_kos    = (estimasi_kos / gaji_akhir) * 100
 
-                    st.session_state["last_prediction"] = {
-                        "kategori":       pilihan_kategori,
-                        "lokasi":         pilihan_lokasi,
-                        "level":          pilihan_level,
-                        "kontrak":        pilihan_kontrak,
-                        "skala":          pilihan_skala,
-                        "gaji_basis":     int(hasil_basis),
-                        "gaji_prediksi":  gaji_akhir,
-                        "gaji_min":       batas_bawah,
-                        "gaji_max":       batas_atas,
-                        "multiplier":     round(total_multiplier, 2),
-                        "m_level":        m_level,
-                        "m_kontrak":      m_kontrak,
-                        "m_skala":        m_skala,
-                        "estimasi_kos":   estimasi_kos,
-                        "rasio_kos":      rasio_kos
-                    }
+                        st.session_state["last_prediction"] = {
+                            "judul":          pilihan_judul.strip(),
+                            "perusahaan":     pilihan_perusahaan.strip() or "—",
+                            "pendidikan":     pendidikan_map[pilihan_pendidikan]["label"],
+                            "level":          pilihan_level,
+                            "kontrak":        pilihan_kontrak,
+                            "gaji_basis":     int(hasil_basis),
+                            "gaji_prediksi":  gaji_akhir,
+                            "gaji_min":       batas_bawah,
+                            "gaji_max":       batas_atas,
+                            "multiplier":     round(total_multiplier, 2),
+                            "m_pendidikan":   m_pendidikan,
+                            "m_level":        m_level,
+                            "m_kontrak":      m_kontrak,
+                            "estimasi_kos":   estimasi_kos,
+                            "rasio_kos":      rasio_kos
+                        }
 
-                    if "messages" in st.session_state:
-                        del st.session_state["messages"]
+                        if "messages" in st.session_state:
+                            del st.session_state["messages"]
 
-                    st.success("✅ Analisis Selesai! Pindah ke Tab **🤖 AI Consultant** untuk saran personal.")
-                else:
-                    st.error("Terjadi masalah saat membaca output model ML.")
+                        st.success("✅ Analisis Selesai! Pindah ke Tab **🤖 AI Consultant** untuk saran personal.")
+                    else:
+                        st.error("Terjadi masalah saat membaca output model ML.")
 
         # ── HASIL PREDIKSI ──
         if "last_prediction" in st.session_state:
@@ -156,7 +217,7 @@ def render():
 <div class="metric-card">
     <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">🤖 Gaji Basis Model ML</p>
     <h2 style="margin:12px 0 8px 0;color:rgba(255,255,255,0.65);font-size:1.3rem;font-weight:700;">Rp {res['gaji_basis']:,}</h2>
-    <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.28);">Output mentah XGBoost</p>
+    <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.28);">Output mentah LightGBM</p>
 </div>""", unsafe_allow_html=True)
 
             with r2:
@@ -180,14 +241,16 @@ def render():
                 st.markdown(f"""
 | Faktor | Pilihan | Multiplier |
 |--------|---------|-----------|
+| Jabatan | {res['judul']} | — |
+| Perusahaan | {res['perusahaan']} | — |
+| Pendidikan Terakhir | {res['pendidikan']} | `×{res['m_pendidikan']}` |
 | Level Pengalaman | {res['level']} | `×{res['m_level']}` |
 | Tipe Kontrak | {res['kontrak']} | `×{res['m_kontrak']}` |
-| Skala Perusahaan | {res['skala']} | `×{res['m_skala']}` |
 | **Total Gabungan** | — | **`×{res['multiplier']}`** |
 | **Gaji Basis ML** | Rp {res['gaji_basis']:,} | |
 | **Hasil Akhir** | **Rp {res['gaji_prediksi']:,}** | |
                 """)
-                st.caption("_Multiplier mengacu pada data rata-rata industri & survei kompensasi Jabodetabek._")
+                st.caption("_Multiplier pendidikan bersumber dari BPS Survei Angkatan Kerja Nasional (Sakernas) 2023._")
 
             st.markdown("<hr>", unsafe_allow_html=True)
 

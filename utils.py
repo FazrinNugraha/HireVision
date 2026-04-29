@@ -61,47 +61,89 @@ def calculate_distance(loc1, loc2):
 
 @st.cache_resource
 def load_ml_resources():
-    """Memuat Model XGBoost dan Kolom Fitur agar tidak reload berulang kali"""
-    import xgboost as xgb
-    model = joblib.load('models/salary/salary_model_xgboost.pkl')
-    kolom_fitur = joblib.load('models/salary/kolom_fitur_model.pkl')
-    
+    """Memuat Model LightGBM dan seluruh encoder pipeline agar tidak reload berulang kali"""
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        model      = joblib.load('models/salary/salary_model_lgbm.pkl')
+        tfidf_word = joblib.load('models/salary/tfidf_word_vectorizer.pkl')
+        tfidf_char = joblib.load('models/salary/tfidf_char_vectorizer.pkl')
+        encoder    = joblib.load('models/salary/target_encoder.pkl')
+        kolom_fitur = joblib.load('models/salary/kolom_fitur_model.pkl')
+
     list_lokasi = [
-        'Bekasi', 'Bogor', 'Depok', 'Jakarta Barat', 'Jakarta Pusat', 
-        'Jakarta Raya (General)', 'Jakarta Selatan', 'Jakarta Timur', 
+        'Bekasi', 'Bogor', 'Depok', 'Jakarta Barat', 'Jakarta Pusat',
+        'Jakarta Raya (General)', 'Jakarta Selatan', 'Jakarta Timur',
         'Jakarta Utara', 'Tangerang', 'Tangerang Selatan'
     ]
-    
+
+    # list_kategori tetap ada untuk kompatibilitas tab Spasial
     list_kategori = [
-        'Administrative & Customer Service', 'Creative, Design & Media', 
-        'Engineering & Manufacturing', 'Finance & Accounting', 
-        'HR & General Affairs', 'Healthcare & Medical', 'IT, Tech & Data', 
-        'Lainnya / Umum', 'Logistics & Supply Chain', 'Management & Supervisor', 
+        'Administrative & Customer Service', 'Creative, Design & Media',
+        'Engineering & Manufacturing', 'Finance & Accounting',
+        'HR & General Affairs', 'Healthcare & Medical', 'IT, Tech & Data',
+        'Lainnya / Umum', 'Logistics & Supply Chain', 'Management & Supervisor',
         'Retail, F&B & Hospitality', 'Sales & Marketing'
     ]
-    
-    return model, kolom_fitur, list_kategori, list_lokasi
 
-def predict_salary(kategori, lokasi, senioritas, model, kolom_fitur):
-    """Menerjemahkan teks jadi array One-Hot lalu memprediksi gaji dengan XGBoost"""
+    resources = {
+        'model': model,
+        'tfidf_word': tfidf_word,
+        'tfidf_char': tfidf_char,
+        'encoder': encoder,
+        'kolom_fitur': kolom_fitur,
+        'list_lokasi': list_lokasi,
+        'list_kategori': list_kategori,
+    }
+    return resources, kolom_fitur, list_kategori, list_lokasi
+
+
+def predict_salary(judul_pekerjaan, perusahaan, lokasi, senioritas, resources):
+    """Pipeline prediksi gaji baru: TF-IDF + Target Encoding + LightGBM"""
     try:
-        import pandas as pd
-        input_data = {col: 0 for col in kolom_fitur}
-        
-        if f'Lokasi_Clean_{lokasi}' in input_data:
-            input_data[f'Lokasi_Clean_{lokasi}'] = 1
-            
-        if f'Kategori_Pekerjaan_{kategori}' in input_data:
-            input_data[f'Kategori_Pekerjaan_{kategori}'] = 1
-            
-        if f'Senioritas_{senioritas}' in input_data:
-            input_data[f'Senioritas_{senioritas}'] = 1
-            
-        df_input = pd.DataFrame([input_data])[kolom_fitur]
-        pred_value = model.predict(df_input)[0]
-        # XGBoost model trained on natural log of target variable to handle skewness, apply exp() back
         import numpy as np
-        return float(np.exp(pred_value))
+        import pandas as pd
+        from scipy.sparse import hstack, csr_matrix
+
+        model       = resources['model']
+        tfidf_word  = resources['tfidf_word']
+        tfidf_char  = resources['tfidf_char']
+        encoder     = resources['encoder']
+        kolom_fitur = resources['kolom_fitur']
+
+        # 1. TF-IDF pada judul pekerjaan
+        X_word = tfidf_word.transform([judul_pekerjaan])
+        X_char = tfidf_char.transform([judul_pekerjaan])
+
+        # 2. Target encoding perusahaan
+        target_val = encoder['perusahaan_target_dict'].get(
+            perusahaan, encoder['global_mean']
+        )
+        comp_size = np.log1p(
+            encoder['company_size_dict'].get(perusahaan, 1)
+        )
+        target_sparse = csr_matrix([[target_val]])
+
+        # 3. Fitur numerik judul
+        title_len = len(judul_pekerjaan)
+        title_wc  = len(judul_pekerjaan.split())
+        extra = csr_matrix([[title_len, title_wc, comp_size]])
+
+        # 4. One-Hot lokasi & senioritas
+        df_cat = pd.DataFrame([[0] * len(kolom_fitur)], columns=kolom_fitur)
+        lok_col = f'Lokasi_Clean_{lokasi}'
+        sen_col = f'Senioritas_{senioritas}'
+        if lok_col in df_cat.columns:
+            df_cat[lok_col] = 1
+        if sen_col in df_cat.columns:
+            df_cat[sen_col] = 1
+        X_cat = csr_matrix(df_cat.values)
+
+        # 5. Gabungkan & prediksi
+        X_final = hstack([X_word, X_char, target_sparse, extra, X_cat])
+        pred_log = model.predict(X_final)[0]
+        return float(np.expm1(pred_log))
+
     except Exception as e:
         st.error(f"Error prediksi ML: {e}")
         return None

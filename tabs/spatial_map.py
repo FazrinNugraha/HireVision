@@ -78,24 +78,38 @@ def render():
         """, unsafe_allow_html=True)
 
         try:
-            model, kolom_fitur, _, _ = load_ml_resources()
+            resources, _, _, _ = load_ml_resources()
+            model       = resources['model']
+            tfidf_word  = resources['tfidf_word']
+            tfidf_char  = resources['tfidf_char']
+            kolom_fitur = resources['kolom_fitur']
 
             importances = model.feature_importances_
+            n_word = len(tfidf_word.vocabulary_)
+            n_char = len(tfidf_char.vocabulary_)
+            n_company = 1   # target encoding perusahaan
+            n_extra   = 3   # title_len, title_wc, company_size
 
-            # Aggregate importances by original feature category
-            imp_lokasi = sum([imp for imp, col in zip(importances, kolom_fitur) if col.startswith('Lokasi')])
-            imp_kategori = sum([imp for imp, col in zip(importances, kolom_fitur) if col.startswith('Kategori')])
-            imp_senioritas = sum([imp for imp, col in zip(importances, kolom_fitur) if col.startswith('Senioritas')])
-            
-            # Normalize to ensure they sum to 1.0 just in case
-            total_imp = imp_lokasi + imp_kategori + imp_senioritas
+            imp_judul     = float(importances[:n_word + n_char].sum())
+            imp_perusahaan = float(importances[n_word + n_char: n_word + n_char + n_company + n_extra].sum())
+            imp_lokasi    = sum(
+                importances[n_word + n_char + n_company + n_extra + i]
+                for i, col in enumerate(kolom_fitur) if col.startswith('Lokasi')
+            )
+            imp_senioritas = sum(
+                importances[n_word + n_char + n_company + n_extra + i]
+                for i, col in enumerate(kolom_fitur) if col.startswith('Senioritas')
+            )
+
+            total_imp = imp_judul + imp_perusahaan + imp_lokasi + imp_senioritas
             if total_imp > 0:
-                imp_lokasi /= total_imp
-                imp_kategori /= total_imp
+                imp_judul      /= total_imp
+                imp_perusahaan /= total_imp
+                imp_lokasi     /= total_imp
                 imp_senioritas /= total_imp
 
-            feature_names = ['Kategori Industri', 'Lokasi', 'Senioritas']
-            agg_importances = [imp_kategori, imp_lokasi, imp_senioritas]
+            feature_names   = ['Judul Pekerjaan', 'Perusahaan', 'Lokasi', 'Level Senioritas']
+            agg_importances = [imp_judul, imp_perusahaan, imp_lokasi, imp_senioritas]
 
             df_imp = pd.DataFrame({
                 'Fitur': feature_names,
@@ -103,7 +117,6 @@ def render():
             }).sort_values(by='Kepentingan', ascending=True)
 
             fig_fi, ax_fi = plt.subplots(figsize=(10, 3))
-            
             fig_fi.patch.set_facecolor("#0e1117")
             ax_fi.set_facecolor("#0e1117")
 
@@ -111,8 +124,8 @@ def render():
 
             for bar in bars:
                 width = bar.get_width()
-                ax_fi.text(width + 0.01, bar.get_y() + bar.get_height()/2, 
-                           f"{width:.1%}", 
+                ax_fi.text(width + 0.01, bar.get_y() + bar.get_height()/2,
+                           f"{width:.1%}",
                            ha='left', va='center', color='white', fontweight='bold')
 
             ax_fi.set_xlabel("Bobot Pengaruh", color="white")
@@ -125,6 +138,7 @@ def render():
 
         except Exception as e:
             st.error(f"Gagal memuat visualisasi feature importance: {str(e)}")
+
 
         st.markdown("<br>", unsafe_allow_html=True)
 
