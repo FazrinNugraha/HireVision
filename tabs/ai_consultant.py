@@ -45,9 +45,9 @@ def render():
         <div style="flex:1;min-width:200px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.05);padding:14px;border-radius:10px;">
             <div style="color:rgba(255,255,255,0.45);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">👤 Profil Pekerja</div>
             <div style="color:rgba(255,255,255,0.8);font-size:13px;line-height:1.7;">
-                • {prediksi_ctx.get('level','–')}<br>
-                • {prediksi_ctx.get('kontrak','–')}<br>
-                • {prediksi_ctx.get('skala','–')}
+                • Proyeksi: {prediksi_ctx.get('tahun_proyeksi','–')}<br>
+                • {prediksi_ctx.get('pendidikan','–')}<br>
+                • Sertif: {prediksi_ctx.get('sertifikasi','–')}
             </div>
         </div>
         <div style="flex:1;min-width:200px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.05);padding:14px;border-radius:10px;">
@@ -75,11 +75,13 @@ def render():
             konteks_str = (
                 f"Pengguna baru saja menggunakan fitur prediksi gaji dan mendapatkan hasil berikut: "
                 f"Posisi/Jabatan: '{prediksi_ctx['judul']}', Perusahaan: '{prediksi_ctx.get('perusahaan','—')}', "
-                f"kota penempatan: '{prediksi_ctx.get('umk_label', prediksi_ctx.get('lokasi',''))}', UMK kota: {prediksi_ctx.get('umk_kota','')}, "
-                f"estimasi gaji pasar: Rp {prediksi_ctx['gaji_prediksi']:,} per bulan "
+                f"Target Proyeksi Tahun: {prediksi_ctx.get('tahun_proyeksi','')}, Pendidikan: {prediksi_ctx.get('pendidikan','')}, "
+                f"Sertifikasi Profesional: {prediksi_ctx.get('sertifikasi','')}, "
+                f"estimasi gaji pasar (setelah penyesuaian): Rp {prediksi_ctx['gaji_prediksi']:,} per bulan "
                 f"(rentang negosiasi wajar Rp {prediksi_ctx['gaji_min']:,} hingga Rp {prediksi_ctx['gaji_max']:,}). "
                 f"Gunakan informasi ini sebagai konteks utama untuk semua jawaban Anda. "
             )
+
             if 'estimasi_kos' in prediksi_ctx:
                 konteks_str += (
                     f"Selain itu, berdasarkan data prediksi hunian Mamikos, rata-rata harga kos di {prediksi_ctx['lokasi']} "

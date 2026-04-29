@@ -3,6 +3,39 @@ import pandas as pd
 from utils import load_ml_resources, predict_salary, predict_kos_price, load_map_data, calculate_distance
 
 def render():
+    # ── Custom CSS for Inputs ──
+    st.markdown("""
+    <style>
+    /* Styling for Text Inputs and Selectboxes */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 10px !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    /* Hover state */
+    div[data-baseweb="input"]:hover, div[data-baseweb="select"]:hover {
+        border-color: rgba(255, 255, 255, 0.25) !important;
+        background-color: rgba(255, 255, 255, 0.04) !important;
+    }
+
+    /* Focus state */
+    div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {
+        border-color: #5dade2 !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        box-shadow: 0 0 12px rgba(93, 173, 226, 0.15) !important;
+    }
+
+    /* Style for the expander to match */
+    .stExpander {
+        border: 1px solid rgba(255, 255, 255, 0.07) !important;
+        border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.01) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # ── Section Header ──
     st.markdown("""
     <div style="margin-bottom:6px;">
@@ -10,7 +43,7 @@ def render():
             Kalkulator Estimasi Gaji Pasar
         </h2>
         <p style="color:rgba(255,255,255,0.45);font-size:0.9rem;margin:0;">
-            Estimasi gaji berdasarkan jabatan, perusahaan, lokasi, pengalaman, tipe kontrak, dan skala perusahaan.
+            Estimasi gaji berbasis AI dengan proyeksi inflasi masa depan, latar belakang pendidikan, dan sertifikasi profesional.
         </p>
     </div>
     <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:18px 0 24px 0;">
@@ -35,6 +68,17 @@ def render():
                 placeholder="Contoh: Senior Data Scientist, HR Manager, Full Stack Developer...",
                 help="Ketik jabatan pekerjaan yang ingin diprediksi gajinya. Semakin spesifik semakin akurat."
             )
+            
+            # Lokasi Penempatan (Dinamis) - Sesuai mockup posisi yang diinginkan
+            pilihan_lokasi = st.selectbox(
+                "📍 Lokasi Penempatan",
+                list_lokasi,
+                index=list_lokasi.index("Jakarta Selatan") if "Jakarta Selatan" in list_lokasi else 0,
+                help="Pilih wilayah penempatan kerja. Standar gaji (UMK) dan biaya hidup akan menyesuaikan dengan lokasi ini."
+            )
+
+
+
         with col2:
             company_size_dict = resources['encoder']['company_size_dict']
 
@@ -58,6 +102,7 @@ def render():
             else:
                 st.caption("ℹ️ Kosongkan jika tidak ingin spesifik — model pakai rata-rata pasar.")
 
+            # Fitur Expander Contoh Perusahaan (MENGEMBALIKAN DESIGN SCROLL HTML)
             top_companies = sorted(
                 {k: v for k, v in company_size_dict.items() if k not in {"Pengiklan Anonim", "Anonymous", "Confidential"}}.items(),
                 key=lambda x: x[1], reverse=True
@@ -76,43 +121,57 @@ def render():
                 )
 
 
-
-
-
-
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ── INPUT CARD 2: Faktor Penyesuaian ──
+        # ── INPUT CARD 2: Faktor Penyesuaian Profil ──
         st.markdown("""
         <div class="sec-hd">
             <div class="sec-hd-dot"></div>
-            <span class="sec-hd-text">⚙️ Faktor Penyesuaian Profil</span>
+            <span class="sec-hd-text">⚙️ Penyesuaian Realistis & Proyeksi Karir</span>
             <div class="sec-hd-line"></div>
         </div>
-        <p style="color:rgba(255,255,255,0.38);font-size:0.82rem;margin:-8px 0 14px 0;">
-            Input ini digunakan untuk menyesuaikan estimasi basis model berdasarkan profil spesifik Anda.
+        <p style="color:rgba(255,255,255,0.45); font-size:0.85rem; line-height:1.6; margin:-8px 0 20px 0;">
+            Optimalkan estimasi gaji Anda dengan menyesuaikan faktor kunci keberhasilan karir: Target Tahun Proyeksi untuk inflasi, 
+            Sertifikasi Profesional untuk nilai tambah keahlian, Pendidikan Terakhir, Level Pengalaman, dan Tipe Kontrak.
         </p>
         """, unsafe_allow_html=True)
 
+        # Baris Pertama Penyesuaian
         cola, colb, colc = st.columns(3)
 
         with cola:
-            # Sumber: BPS Sakernas 2023 — Rata-rata upah buruh berdasarkan pendidikan
+            proyeksi_map = {
+                "📅 2026 (Tahun Depan)": {"m_proyeksi": 1.17, "label": "2026"},
+                "📅 2027 (Jangka Pendek)": {"m_proyeksi": 1.26, "label": "2027"},
+                "📅 2028 (Jangka Madya)":  {"m_proyeksi": 1.36, "label": "2028"},
+                "📅 2029 (Jangka Panjang)": {"m_proyeksi": 1.47, "label": "2029"},
+                "📅 2030 (5 Tahun Depan)":  {"m_proyeksi": 1.59, "label": "2030"},
+            }
+            pilihan_proyeksi = st.selectbox("Target Tahun Proyeksi", list(proyeksi_map.keys()), index=0)
+
+        with colb:
             pendidikan_map = {
                 "🎓 SMA / SMK":         {"m_pendidikan": 0.78, "label": "SMA/SMK"},
                 "🏅 Diploma (D3/D4)":  {"m_pendidikan": 0.88, "label": "Diploma"},
                 "🎓 S1 / Sarjana":      {"m_pendidikan": 1.00, "label": "S1/Sarjana"},
                 "🎖️ S2 / Magister ke atas": {"m_pendidikan": 1.25, "label": "S2+"},
             }
-            pilihan_pendidikan = st.selectbox(
-                "Pendidikan Terakhir",
-                list(pendidikan_map.keys()),
-                index=2,
-                help="Sumber: BPS Sakernas 2023. Tingkat pendidikan berpengaruh signifikan terhadap rentang gaji yang ditawarkan."
-            )
-            st.caption(f"Multiplier Sakernas BPS: ×{pendidikan_map[pilihan_pendidikan]['m_pendidikan']}")
+            pilihan_pendidikan = st.selectbox("Pendidikan Terakhir", list(pendidikan_map.keys()), index=2)
 
-        with colb:
+        with colc:
+            sertifikat_map = {
+                "📄 Tanpa Sertifikasi":      {"m_sertifikat": 1.00, "label": "None"},
+                "🏅 Sertifikat BNSP / Lokal": {"m_sertifikat": 1.15, "label": "Lokal/BNSP"},
+                "🎖️ Sertifikat Associate (Intl)": {"m_sertifikat": 1.30, "label": "Associate"},
+                "🏆 Sertifikat Expert (Intl)": {"m_sertifikat": 1.50, "label": "Expert"},
+            }
+            pilihan_sertifikat = st.selectbox("Sertifikasi Profesional", list(sertifikat_map.keys()), index=0)
+
+        # Baris Kedua Penyesuaian
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_lvl, col_ktrk = st.columns(2)
+        
+        with col_lvl:
             level_map = {
                 "🌱 Fresh Graduate (0–1 thn)":  {"senioritas": "Junior/Entry",      "m_level": 0.85},
                 "📈 Junior – Mid (1–4 thn)":    {"senioritas": "Mid-Level/Staff",   "m_level": 0.95},
@@ -120,15 +179,15 @@ def render():
                 "🎖️ Expert / Lead (8+ thn)":    {"senioritas": "Senior/Managerial", "m_level": 1.20},
             }
             pilihan_level = st.selectbox("Level Pengalaman", list(level_map.keys()))
-
-        with colc:
+            
+        with col_ktrk:
             kontrak_map = {
                 "📝 Magang / Internship":  0.50,
                 "🔄 Freelance / Project":  0.85,
                 "📋 Kontrak (1–2 thn)":    0.95,
                 "🏢 Permanen / Full-Time": 1.00,
             }
-            pilihan_kontrak = st.selectbox("Tipe Kontrak", list(kontrak_map.keys()))
+            pilihan_kontrak = st.selectbox("Tipe Kontrak", list(kontrak_map.keys()), index=3)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -139,28 +198,37 @@ def render():
                 with st.spinner("Memproses LightGBM + penyesuaian profil..."):
                     level_data     = level_map[pilihan_level]
                     senioritas_val = level_data["senioritas"]
+                    
                     hasil_basis = predict_salary(
                         judul_pekerjaan=pilihan_judul.strip(),
                         perusahaan=pilihan_perusahaan.strip() if pilihan_perusahaan.strip() else "__unknown__",
-                        lokasi="Jakarta Selatan",
+                        lokasi=pilihan_lokasi,  # Menggunakan lokasi dinamis
                         senioritas=senioritas_val,
                         resources=resources
                     )
+                    
                     if hasil_basis is not None:
+                        m_proyeksi   = proyeksi_map[pilihan_proyeksi]["m_proyeksi"]
                         m_pendidikan = pendidikan_map[pilihan_pendidikan]["m_pendidikan"]
+                        m_sertifikat = sertifikat_map[pilihan_sertifikat]["m_sertifikat"]
                         m_level      = level_data["m_level"]
                         m_kontrak    = kontrak_map[pilihan_kontrak]
-                        total_multiplier = m_pendidikan * m_level * m_kontrak
+                        
+                        total_multiplier = m_proyeksi * m_pendidikan * m_sertifikat * m_level * m_kontrak
                         gaji_akhir   = int(hasil_basis * total_multiplier)
+                        
                         batas_bawah  = int(gaji_akhir * 0.90)
                         batas_atas   = int(gaji_akhir * 1.10)
-                        estimasi_kos = predict_kos_price("Jakarta Selatan")
+                        estimasi_kos = predict_kos_price(pilihan_lokasi) # Harga kos mengikuti lokasi dinamis
                         rasio_kos    = (estimasi_kos / gaji_akhir) * 100
 
                         st.session_state["last_prediction"] = {
                             "judul":          pilihan_judul.strip(),
                             "perusahaan":     pilihan_perusahaan.strip() or "—",
+                            "lokasi":         pilihan_lokasi,
+                            "tahun_proyeksi": proyeksi_map[pilihan_proyeksi]["label"],
                             "pendidikan":     pendidikan_map[pilihan_pendidikan]["label"],
+                            "sertifikasi":    sertifikat_map[pilihan_sertifikat]["label"],
                             "level":          pilihan_level,
                             "kontrak":        pilihan_kontrak,
                             "gaji_basis":     int(hasil_basis),
@@ -168,7 +236,9 @@ def render():
                             "gaji_min":       batas_bawah,
                             "gaji_max":       batas_atas,
                             "multiplier":     round(total_multiplier, 2),
+                            "m_proyeksi":     m_proyeksi,
                             "m_pendidikan":   m_pendidikan,
+                            "m_sertifikat":   m_sertifikat,
                             "m_level":        m_level,
                             "m_kontrak":      m_kontrak,
                             "estimasi_kos":   estimasi_kos,
@@ -225,7 +295,7 @@ def render():
 <div style="background:{bg_grad};border:1px solid {border_col};border-radius:16px;padding:22px 20px;text-align:center;">
     <p style="margin:0;color:{title_col};font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">✨ Estimasi Gaji Anda</p>
     <h2 style="margin:12px 0 8px 0;color:{val_col};font-size:1.3rem;font-weight:700;">Rp {res['gaji_prediksi']:,}</h2>
-    <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.35);">Setelah penyesuaian profil</p>
+    <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.35);">Setelah penyesuaian 5 faktor</p>
 </div>""", unsafe_allow_html=True)
 
             with r3:
@@ -243,14 +313,17 @@ def render():
 |--------|---------|-----------|
 | Jabatan | {res['judul']} | — |
 | Perusahaan | {res['perusahaan']} | — |
+| Lokasi | {res['lokasi']} | — |
+| Tahun Proyeksi | {res['tahun_proyeksi']} | `×{res['m_proyeksi']}` |
 | Pendidikan Terakhir | {res['pendidikan']} | `×{res['m_pendidikan']}` |
+| Sertifikasi | {res['sertifikasi']} | `×{res['m_sertifikat']}` |
 | Level Pengalaman | {res['level']} | `×{res['m_level']}` |
 | Tipe Kontrak | {res['kontrak']} | `×{res['m_kontrak']}` |
 | **Total Gabungan** | — | **`×{res['multiplier']}`** |
 | **Gaji Basis ML** | Rp {res['gaji_basis']:,} | |
 | **Hasil Akhir** | **Rp {res['gaji_prediksi']:,}** | |
                 """)
-                st.caption("_Multiplier pendidikan bersumber dari BPS Survei Angkatan Kerja Nasional (Sakernas) 2023._")
+                st.caption("_Proyeksi tahunan menggunakan asumsi kenaikan upah nominal 8% (BPS). Multiplier pendidikan bersumber dari BPS Sakernas 2023._")
 
             st.markdown("<hr>", unsafe_allow_html=True)
 
