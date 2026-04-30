@@ -97,6 +97,54 @@ def render():
             f"\n\nKONTEKS PENGGUNA SAAT INI: {konteks_str}"
         )
 
+        # ── QUICK QUESTION TEMPLATES ──
+        if prediksi_ctx:
+            st.markdown("""
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);margin:16px 0 10px 0;letter-spacing:0.5px;">
+                ⚡ PERTANYAAN CEPAT
+            </div>
+            """, unsafe_allow_html=True)
+            
+            quick_questions = [
+                "Tips negosiasi gaji untuk posisi ini",
+                "Skillset yang dibutuhkan untuk naik level?",
+                "Persiapan interview yang efektif?",
+                "Bagaimana prospek karir di posisi ini?",
+                "Strategi hunian terbaik untuk gaji ini?",
+                "Cara menyusun CV yang baik gimana?"
+            ]
+            
+            # Layout 2 baris x 3 kolom
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button(quick_questions[0], key="q0", use_container_width=True):
+                    st.session_state["pending_question"] = quick_questions[0]
+                    st.rerun()
+            with col2:
+                if st.button(quick_questions[1], key="q1", use_container_width=True):
+                    st.session_state["pending_question"] = quick_questions[1]
+                    st.rerun()
+            with col3:
+                if st.button(quick_questions[2], key="q2", use_container_width=True):
+                    st.session_state["pending_question"] = quick_questions[2]
+                    st.rerun()
+            
+            col4, col5, col6 = st.columns(3)
+            with col4:
+                if st.button(quick_questions[3], key="q3", use_container_width=True):
+                    st.session_state["pending_question"] = quick_questions[3]
+                    st.rerun()
+            with col5:
+                if st.button(quick_questions[4], key="q4", use_container_width=True):
+                    st.session_state["pending_question"] = quick_questions[4]
+                    st.rerun()
+            with col6:
+                if st.button(quick_questions[5], key="q5", use_container_width=True):
+                    st.session_state["pending_question"] = quick_questions[5]
+                    st.rerun()
+            
+            st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
+
         # ── INISIALISASI CHAT ──
         if "messages" not in st.session_state:
             salam_awal = (
@@ -107,6 +155,33 @@ def render():
                    "Ada yang bisa saya bantu terkait karir Anda di Jabodetabek hari ini?")
             )
             st.session_state["messages"] = [{"role": "assistant", "content": salam_awal}]
+
+        # ── HANDLE PENDING QUESTION FROM QUICK BUTTONS ──
+        if "pending_question" in st.session_state:
+            pending_q = st.session_state["pending_question"]
+            del st.session_state["pending_question"]
+            
+            # Add user message
+            st.session_state.messages.append({"role": "user", "content": pending_q})
+            
+            # Generate AI response
+            history_murni = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
+            stream = chat_with_career_bot(client, pending_q, history_murni, system_prompt_dinamis)
+            
+            full_response = ""
+            if stream:
+                for chunk in stream:
+                    try:
+                        delta = chunk.text
+                        if delta:
+                            full_response += delta
+                    except Exception:
+                        pass
+            
+            if full_response:
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
+            
+            st.rerun()
 
         # ── TAMPILKAN HISTORY CHAT ──
         for msg in st.session_state.messages:
