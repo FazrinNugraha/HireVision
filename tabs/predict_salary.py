@@ -33,6 +33,46 @@ def render():
         border-radius: 12px !important;
         background: rgba(255, 255, 255, 0.01) !important;
     }
+    
+    /* Styling khusus untuk tombol di dalam expander bertipe dropdown list */
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) div[data-testid="stExpanderDetails"] {
+        max-height: 180px;
+        overflow-y: auto;
+        padding-top: 0 !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) div[data-testid="stVerticalBlock"] {
+        gap: 0 !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"] {
+        background-color: transparent !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+        border-radius: 0 !important;
+        justify-content: flex-start !important;
+        padding: 6px 4px !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"]:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"] div[data-testid="stMarkdownContainer"] {
+        width: 100% !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"] p {
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        text-align: left !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"]:hover p {
+        color: #5dade2 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -69,56 +109,76 @@ def render():
                 help="Ketik jabatan pekerjaan yang ingin diprediksi gajinya. Semakin spesifik semakin akurat."
             )
             
+           
+            
+            # Callback untuk mempercepat perpindahan lokasi tanpa double-loading
+            def update_lokasi(lokasi_baru):
+                st.session_state.lokasi_terpilih = lokasi_baru
+
             # Lokasi Penempatan (Dinamis) - Sesuai mockup posisi yang diinginkan
-            pilihan_lokasi = st.selectbox(
-                "📍 Lokasi Penempatan",
-                list_lokasi,
-                index=list_lokasi.index("Jakarta Selatan") if "Jakarta Selatan" in list_lokasi else 0,
-                help="Pilih wilayah penempatan kerja. Standar gaji (UMK) dan biaya hidup akan menyesuaikan dengan lokasi ini."
-            )
+            if "lokasi_terpilih" not in st.session_state:
+                st.session_state.lokasi_terpilih = "Jakarta Selatan" if "Jakarta Selatan" in list_lokasi else list_lokasi[0]
+            
+            pilihan_lokasi = st.session_state.lokasi_terpilih
+            
+            with st.expander(f"📍 Lokasi Penempatan: {st.session_state.lokasi_terpilih}"):
+                st.markdown("<div class='marker-dropdown-list'></div>", unsafe_allow_html=True)
+                for loc in list_lokasi:
+                    st.button(
+                        loc, 
+                        key=f"btn_loc_{loc}", 
+                        use_container_width=True,
+                        on_click=update_lokasi,
+                        args=(loc,)
+                    )
 
 
 
         with col2:
             company_size_dict = resources['encoder']['company_size_dict']
 
+            # Fungsi callback untuk list perusahaan
+            def update_perusahaan(nama_perusahaan):
+                st.session_state.input_perusahaan = nama_perusahaan
+
+            if "input_perusahaan" not in st.session_state:
+                st.session_state.input_perusahaan = ""
+
             pilihan_perusahaan = st.text_input(
                 "Nama Perusahaan (Opsional)",
+                key="input_perusahaan",
                 placeholder="Contoh: PT XL Axiata Tbk, Dexa Group, EUROMEDICA GROUP...",
                 help="Ketik nama perusahaan. Jika dikenal model, prediksi lebih akurat. Jika tidak, model pakai rata-rata pasar."
             )
 
-            # Status pengenalan perusahaan secara real-time
-            if pilihan_perusahaan.strip():
-                jumlah_data = company_size_dict.get(pilihan_perusahaan.strip(), 0)
-                if jumlah_data >= 10:
-                    st.caption(f"✅ Dikenal model — **{jumlah_data} data** ditemukan, prediksi sangat akurat.")
-                elif jumlah_data >= 3:
-                    st.caption(f"⚠️ Dikenal model — **{jumlah_data} data** ditemukan, prediksi cukup akurat.")
-                elif jumlah_data > 0:
-                    st.caption(f"ℹ️ Data sangat sedikit ({jumlah_data}) — model pakai rata-rata pasar sebagai acuan.")
-                else:
-                    st.caption("❓ Perusahaan tidak dikenal model — prediksi berdasarkan rata-rata pasar umum.")
-            else:
-                st.caption("ℹ️ Kosongkan jika tidak ingin spesifik — model pakai rata-rata pasar.")
+            # # Status pengenalan perusahaan secara real-time
+            # if pilihan_perusahaan.strip():
+            #     jumlah_data = company_size_dict.get(pilihan_perusahaan.strip(), 0)
+            #     if jumlah_data >= 10:
+            #         st.caption(f"✅ Dikenal model — **{jumlah_data} data** ditemukan, prediksi sangat akurat.")
+            #     elif jumlah_data >= 3:
+            #         st.caption(f"⚠️ Dikenal model — **{jumlah_data} data** ditemukan, prediksi cukup akurat.")
+            #     elif jumlah_data > 0:
+            #         st.caption(f"ℹ️ Data sangat sedikit ({jumlah_data}) — model pakai rata-rata pasar sebagai acuan.")
+            #     else:
+            #         st.caption("❓ Perusahaan tidak dikenal model — prediksi berdasarkan rata-rata pasar umum.")
+            
 
-            # Fitur Expander Contoh Perusahaan (MENGEMBALIKAN DESIGN SCROLL HTML)
+            # Fitur Expander Contoh Perusahaan
             top_companies = sorted(
                 {k: v for k, v in company_size_dict.items() if k not in {"Pengiklan Anonim", "Anonymous", "Confidential"}}.items(),
                 key=lambda x: x[1], reverse=True
             )[:30]
             with st.expander("💡 Contoh perusahaan yang dikenal model"):
-                items_html = "".join([
-                    f'<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.07);font-size:13px;">'
-                    f'<span style="color:rgba(255,255,255,0.9);font-weight:600;">{nama}</span>'
-                    f'<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:8px;">({count} data)</span>'
-                    f'</div>'
-                    for nama, count in top_companies
-                ])
-                st.markdown(
-                    f'<div style="max-height:140px;overflow-y:auto;padding:4px 8px;">{items_html}</div>',
-                    unsafe_allow_html=True
-                )
+                st.markdown("<div class='marker-dropdown-list'></div>", unsafe_allow_html=True)
+                for nama, count in top_companies:
+                    st.button(
+                        f"{nama} ({count} data)",
+                        key=f"btn_comp_{nama}",
+                        use_container_width=True,
+                        on_click=update_perusahaan,
+                        args=(nama,)
+                    )
 
 
         st.markdown("<br>", unsafe_allow_html=True)
