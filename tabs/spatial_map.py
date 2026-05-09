@@ -82,34 +82,39 @@ def render():
             model       = resources['model']
             tfidf_word  = resources['tfidf_word']
             tfidf_char  = resources['tfidf_char']
-            kolom_fitur = resources['kolom_fitur']
+            ohe_encoder = resources['ohe_encoder']
 
             importances = model.feature_importances_
             n_word = len(tfidf_word.vocabulary_)
             n_char = len(tfidf_char.vocabulary_)
-            n_company = 1   # target encoding perusahaan
-            n_extra   = 3   # title_len, title_wc, company_size
+            n_target = 1   # target encoding default
+            n_extra  = 3   # title_len, title_wc, comp_size (0)
+
+            # Get OHE feature names (hanya Lokasi + Kategori, Senioritas di-drop)
+            ohe_feature_names = ohe_encoder.get_feature_names_out(['Lokasi_Clean', 'Kategori_Pekerjaan', 'Senioritas'])
+            # Drop 3 kolom terakhir (Senioritas) karena tidak dipakai model
+            ohe_feature_names = ohe_feature_names[:-3]
 
             imp_judul     = float(importances[:n_word + n_char].sum())
-            imp_perusahaan = float(importances[n_word + n_char: n_word + n_char + n_company + n_extra].sum())
+            imp_target    = float(importances[n_word + n_char: n_word + n_char + n_target + n_extra].sum())
             imp_lokasi    = sum(
-                importances[n_word + n_char + n_company + n_extra + i]
-                for i, col in enumerate(kolom_fitur) if col.startswith('Lokasi')
+                importances[n_word + n_char + n_target + n_extra + i]
+                for i, col in enumerate(ohe_feature_names) if col.startswith('Lokasi_Clean')
             )
-            imp_senioritas = sum(
-                importances[n_word + n_char + n_company + n_extra + i]
-                for i, col in enumerate(kolom_fitur) if col.startswith('Senioritas')
+            imp_kategori = sum(
+                importances[n_word + n_char + n_target + n_extra + i]
+                for i, col in enumerate(ohe_feature_names) if col.startswith('Kategori_Pekerjaan')
             )
 
-            total_imp = imp_judul + imp_perusahaan + imp_lokasi + imp_senioritas
+            total_imp = imp_judul + imp_target + imp_lokasi + imp_kategori
             if total_imp > 0:
-                imp_judul      /= total_imp
-                imp_perusahaan /= total_imp
-                imp_lokasi     /= total_imp
-                imp_senioritas /= total_imp
+                imp_judul    /= total_imp
+                imp_target   /= total_imp
+                imp_lokasi   /= total_imp
+                imp_kategori /= total_imp
 
-            feature_names   = ['Judul Pekerjaan', 'Perusahaan', 'Lokasi', 'Level Senioritas']
-            agg_importances = [imp_judul, imp_perusahaan, imp_lokasi, imp_senioritas]
+            feature_names   = ['Judul Pekerjaan', 'Kategori Pekerjaan', 'Lokasi', 'Target Encoding']
+            agg_importances = [imp_judul, imp_kategori, imp_lokasi, imp_target]
 
             df_imp = pd.DataFrame({
                 'Fitur': feature_names,

@@ -1,0 +1,341 @@
+{
+  "metadata": {
+    "model": "Random Forest Regressor",
+    "total_features": 207,
+    "dataset": "Lowongan Kerja Jabodetabek",
+    "last_updated": "2026-05-08"
+  },
+  "keywords": {
+    "level_senioritas": {
+      "category": "Level/Senioritas",
+      "icon": "🎖️",
+      "keywords": [
+        {
+          "word": "manager",
+          "importance": 0.0468,
+          "salary_impact": "+50-70%",
+          "examples": ["Product Manager", "Marketing Manager", "Project Manager"]
+        },
+        {
+          "word": "chief",
+          "importance": 0.0040,
+          "salary_impact": "+40-60%",
+          "examples": ["Chief Technology Officer", "Chief Marketing Officer"]
+        },
+        {
+          "word": "senior",
+          "importance": 0.0005,
+          "salary_impact": "+10-20%",
+          "examples": ["Senior Data Scientist", "Senior Developer"]
+        },
+        {
+          "word": "lead",
+          "importance": 0.0004,
+          "salary_impact": "+15-25%",
+          "examples": ["Lead Engineer", "Tech Lead"]
+        },
+        {
+          "word": "supervisor",
+          "importance": 0.0012,
+          "salary_impact": "+20-30%",
+          "examples": ["Supervisor Produksi", "Supervisor Sales"]
+        },
+        {
+          "word": "staff",
+          "importance": 0.0003,
+          "salary_impact": "-10-20%",
+          "examples": ["Staff IT", "Staff Admin"]
+        },
+        {
+          "word": "junior",
+          "importance": 0.0002,
+          "salary_impact": "-20-30%",
+          "examples": ["Junior Developer", "Junior Analyst"]
+        },
+        {
+          "word": "intern",
+          "importance": 0.0001,
+          "salary_impact": "-40-50%",
+          "examples": ["Intern", "Magang"]
+        }
+      ]
+    },
+    "tech_it": {
+      "category": "Tech/IT",
+      "icon": "💻",
+      "keywords": [
+        {
+          "word": "engineer",
+          "importance": 0.0004,
+          "salary_impact": "+5-15%",
+          "examples": ["Software Engineer", "Data Engineer"]
+        },
+        {
+          "word": "developer",
+          "importance": 0.0003,
+          "salary_impact": "+5-10%",
+          "examples": ["Backend Developer", "Frontend Developer"]
+        },
+        {
+          "word": "data",
+          "importance": 0.0003,
+          "salary_impact": "+10-20%",
+          "examples": ["Data Scientist", "Data Analyst"]
+        },
+        {
+          "word": "scientist",
+          "importance": 0.0002,
+          "salary_impact": "+15-25%",
+          "examples": ["Data Scientist", "Research Scientist"]
+        },
+        {
+          "word": "analyst",
+          "importance": 0.0002,
+          "salary_impact": "+5-15%",
+          "examples": ["Data Analyst", "Business Analyst"]
+        },
+        {
+          "word": "software",
+          "importance": 0.0002,
+          "salary_impact": "+5-10%",
+          "examples": ["Software Engineer", "Software Developer"]
+        }
+      ]
+    },
+    "business_management": {
+      "category": "Business/Management",
+      "icon": "💼",
+      "keywords": [
+        {
+          "word": "product",
+          "importance": 0.0007,
+          "salary_impact": "+30-40%",
+          "examples": ["Product Manager", "Product Owner"]
+        },
+        {
+          "word": "project",
+          "importance": 0.0027,
+          "salary_impact": "+20-30%",
+          "examples": ["Project Manager", "Project Development"]
+        },
+        {
+          "word": "development",
+          "importance": 0.0033,
+          "salary_impact": "+10-20%",
+          "examples": ["Business Development", "Project Development"]
+        },
+        {
+          "word": "business",
+          "importance": 0.0005,
+          "salary_impact": "+10-15%",
+          "examples": ["Business Analyst", "Business Development"]
+        }
+      ]
+    },
+    "sales_marketing": {
+      "category": "Sales/Marketing",
+      "icon": "📈",
+      "keywords": [
+        {
+          "word": "sales",
+          "importance": 0.0024,
+          "salary_impact": "+10-20%",
+          "examples": ["Sales Manager", "Sales Officer"]
+        },
+        {
+          "word": "marketing",
+          "importance": 0.0015,
+          "salary_impact": "+20-30%",
+          "examples": ["Marketing Manager", "Digital Marketing"]
+        },
+        {
+          "word": "officer",
+          "importance": 0.0034,
+          "salary_impact": "+5-10%",
+          "examples": ["Sales Officer", "Development Officer"]
+        }
+      ]
+    }
+  },
+  "salary_tiers": {
+    "tier_s": {
+      "range": "Rp 11,000,000 - Rp 12,500,000",
+      "icon": "💎",
+      "jobs": [
+        {
+          "title": "Marketing Manager",
+          "salary": 12345330,
+          "keywords": ["marketing", "manager"]
+        },
+        {
+          "title": "Senior Manager Product",
+          "salary": 11650638,
+          "keywords": ["senior", "manager", "product"]
+        },
+        {
+          "title": "Product Manager",
+          "salary": 11566270,
+          "keywords": ["product", "manager"]
+        },
+        {
+          "title": "Project Manager",
+          "salary": 11230708,
+          "keywords": ["project", "manager"]
+        }
+      ]
+    },
+    "tier_a": {
+      "range": "Rp 7,400,000 - Rp 7,600,000",
+      "icon": "💰",
+      "jobs": [
+        {
+          "title": "Software Engineer",
+          "salary": 7530097,
+          "keywords": ["software", "engineer"]
+        },
+        {
+          "title": "Chief Technology Officer",
+          "salary": 7513169,
+          "keywords": ["chief", "technology", "officer"]
+        },
+        {
+          "title": "Lead Software Engineer",
+          "salary": 7509697,
+          "keywords": ["lead", "software", "engineer"]
+        },
+        {
+          "title": "Senior Data Scientist",
+          "salary": 7434792,
+          "keywords": ["senior", "data", "scientist"]
+        }
+      ]
+    },
+    "tier_b": {
+      "range": "Rp 7,200,000 - Rp 7,400,000",
+      "icon": "💵",
+      "jobs": [
+        {
+          "title": "Data Scientist",
+          "salary": 7353703,
+          "keywords": ["data", "scientist"]
+        },
+        {
+          "title": "Business Analyst",
+          "salary": 7295105,
+          "keywords": ["business", "analyst"]
+        },
+        {
+          "title": "Data Analyst",
+          "salary": 7275340,
+          "keywords": ["data", "analyst"]
+        }
+      ]
+    },
+    "tier_c": {
+      "range": "Rp 7,200,000 - Rp 7,300,000",
+      "icon": "💸",
+      "jobs": [
+        {
+          "title": "Staff IT",
+          "salary": 7302785,
+          "keywords": ["staff"]
+        },
+        {
+          "title": "Junior Data Analyst",
+          "salary": 7291277,
+          "keywords": ["junior", "data", "analyst"]
+        }
+      ]
+    }
+  },
+  "formulas": {
+    "high_salary": {
+      "formula": "[DOMAIN] + MANAGER",
+      "examples": [
+        "Marketing Manager",
+        "Product Manager",
+        "Project Manager"
+      ],
+      "expected_salary": "Rp 11,000,000+"
+    },
+    "medium_high_salary": {
+      "formula": "[LEVEL] + [TECH] + [ROLE]",
+      "examples": [
+        "Senior Data Scientist",
+        "Lead Software Engineer",
+        "Senior Backend Developer"
+      ],
+      "expected_salary": "Rp 7,400,000 - Rp 7,600,000"
+    },
+    "medium_salary": {
+      "formula": "[TECH] + [ROLE]",
+      "examples": [
+        "Data Scientist",
+        "Software Engineer",
+        "Business Analyst"
+      ],
+      "expected_salary": "Rp 7,200,000 - Rp 7,400,000"
+    },
+    "low_salary": {
+      "formula": "[GENERIC] or [JUNIOR]",
+      "examples": [
+        "Staff IT",
+        "Junior Developer",
+        "Admin"
+      ],
+      "expected_salary": "Rp 7,200,000 - Rp 7,300,000"
+    }
+  },
+  "tips": {
+    "do": [
+      "Tambahkan level: Senior, Lead, Head, Chief, Manager",
+      "Gunakan kata spesifik: Engineer > Developer > Programmer",
+      "Kombinasi kata kuat: Senior Data Scientist, Lead Software Engineer",
+      "Sebutkan spesialisasi: Backend, Frontend, Full Stack",
+      "Tambahkan domain: Product, Project, Marketing, Sales"
+    ],
+    "dont": [
+      "Hindari kata generic: Staff, Admin, Officer (tanpa spesialisasi)",
+      "Hindari kata entry level: Junior, Intern, Magang, Trainee",
+      "Jangan terlalu umum: IT → Software Engineer, Admin → Administrative Officer",
+      "Jangan tanpa level: Developer → Senior Developer"
+    ]
+  },
+  "experiments": [
+    {
+      "name": "Pengaruh Level",
+      "tests": [
+        "Data Scientist",
+        "Senior Data Scientist",
+        "Lead Data Scientist",
+        "Head of Data Science"
+      ]
+    },
+    {
+      "name": "Pengaruh Manager",
+      "tests": [
+        "Product",
+        "Product Owner",
+        "Product Manager",
+        "Senior Product Manager"
+      ]
+    },
+    {
+      "name": "Engineer vs Developer",
+      "tests": [
+        "Programmer",
+        "Developer",
+        "Software Developer",
+        "Software Engineer"
+      ]
+    },
+    {
+      "name": "Spesialisasi",
+      "tests": [
+        "Developer",
+        "Backend Developer",
+        "Senior Backend Developer"
+      ]
+    }
+  ]
+}

@@ -61,15 +61,15 @@ def calculate_distance(loc1, loc2):
 
 @st.cache_resource
 def load_ml_resources():
-    """Memuat Model LightGBM dan seluruh encoder pipeline agar tidak reload berulang kali"""
+    """Memuat Model Random Forest dan seluruh encoder pipeline agar tidak reload berulang kali"""
     import warnings
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        model      = joblib.load('models/salary/salary_model_lgbm.pkl')
+        model      = joblib.load('models/salary/salary_model_random_forest.pkl')
         tfidf_word = joblib.load('models/salary/tfidf_word_vectorizer.pkl')
         tfidf_char = joblib.load('models/salary/tfidf_char_vectorizer.pkl')
         encoder    = joblib.load('models/salary/target_encoder.pkl')
-        kolom_fitur = joblib.load('models/salary/kolom_fitur_model.pkl')
+        ohe_encoder = joblib.load('models/salary/ohe_encoder.pkl')
 
     list_lokasi = [
         'Bekasi', 'Bogor', 'Depok', 'Jakarta Barat', 'Jakarta Pusat',
@@ -91,15 +91,15 @@ def load_ml_resources():
         'tfidf_word': tfidf_word,
         'tfidf_char': tfidf_char,
         'encoder': encoder,
-        'kolom_fitur': kolom_fitur,
+        'ohe_encoder': ohe_encoder,
         'list_lokasi': list_lokasi,
         'list_kategori': list_kategori,
     }
-    return resources, kolom_fitur, list_kategori, list_lokasi
+    return resources, ohe_encoder, list_kategori, list_lokasi
 
 
-def predict_salary(judul_pekerjaan, perusahaan, lokasi, senioritas, resources):
-    """Pipeline prediksi gaji baru: TF-IDF + Target Encoding + LightGBM"""
+def predict_salary(judul_pekerjaan, kategori_pekerjaan, lokasi, resources):
+    """Pipeline prediksi gaji: TF-IDF + OHE (Lokasi + Kategori only) + Random Forest"""
     try:
         import numpy as np
         import pandas as pd
@@ -108,86 +108,95 @@ def predict_salary(judul_pekerjaan, perusahaan, lokasi, senioritas, resources):
         model       = resources['model']
         tfidf_word  = resources['tfidf_word']
         tfidf_char  = resources['tfidf_char']
-        encoder     = resources['encoder']
-        kolom_fitur = resources['kolom_fitur']
+        ohe_encoder = resources['ohe_encoder']
 
         # 1. TF-IDF pada judul pekerjaan
         X_word = tfidf_word.transform([judul_pekerjaan])
         X_char = tfidf_char.transform([judul_pekerjaan])
 
-        # 2. Target encoding perusahaan
-        target_val = encoder['perusahaan_target_dict'].get(
-            perusahaan, encoder['global_mean']
-        )
-        comp_size = np.log1p(
-            encoder['company_size_dict'].get(perusahaan, 1)
-        )
-        target_sparse = csr_matrix([[target_val]])
-
-        # 3. Fitur numerik judul
+        # 2. Fitur numerik judul (tanpa company size)
         title_len = len(judul_pekerjaan)
         title_wc  = len(judul_pekerjaan.split())
-        extra = csr_matrix([[title_len, title_wc, comp_size]])
+        extra = csr_matrix([[title_len, title_wc, 0]])  # comp_size = 0
 
-        # 4. One-Hot lokasi & senioritas
-        df_cat = pd.DataFrame([[0] * len(kolom_fitur)], columns=kolom_fitur)
-        lok_col = f'Lokasi_Clean_{lokasi}'
-        sen_col = f'Senioritas_{senioritas}'
-        if lok_col in df_cat.columns:
-            df_cat[lok_col] = 1
-        if sen_col in df_cat.columns:
-            df_cat[sen_col] = 1
-        X_cat = csr_matrix(df_cat.values)
+        # 3. Target encoding default (tanpa perusahaan)
+        target_sparse = csr_matrix([[5000000]])  # Default mean salary
+
+        # 4. One-Hot Encoding - urutan: Lokasi, Kategori, Senioritas
+        # Senioritas diisi dengan default untuk kompatibilitas encoder
+        df_cat = pd.DataFrame({
+            'Lokasi_Clean': [lokasi],
+            'Kategori_Pekerjaan': [kategori_pekerjaan],
+            'Senioritas': ['Mid-Level/Staff']  # Default value
+        })
+        X_ohe_full = ohe_encoder.transform(df_cat)
+        
+        # Drop 3 kolom terakhir (Senioritas) karena model tidak dilatih dengan fitur ini
+        # OHE menghasilkan: 11 (Lokasi) + 12 (Kategori) + 3 (Senioritas) = 26
+        # Model hanya butuh: 11 (Lokasi) + 12 (Kategori) = 23
+        X_ohe = X_ohe_full[:, :-3]  # Ambil semua kecuali 3 kolom terakhir
 
         # 5. Gabungkan & prediksi
-        X_final = hstack([X_word, X_char, target_sparse, extra, X_cat])
+        X_final = hstack([X_word, X_char, target_sparse, extra, X_ohe])
         pred_log = model.predict(X_final)[0]
         return float(np.expm1(pred_log))
 
     except Exception as e:
         st.error(f"Error prediksi ML: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return None
 
 @st.cache_resource
 def load_housing_resources():
-    kos_model = joblib.load('models/kos/kos_price_model.pkl')
-    region_enc = joblib.load('models/kos/region_encoder.pkl')
-    tipe_kos_enc = joblib.load('models/kos/tipe_kos_encoder.pkl')
-    electricity_enc = joblib.load('models/kos/is_electricity_included_encoder.pkl')
-    return kos_model, region_enc, tipe_kos_enc, electricity_enc
+    """Load pipeline kos yang sudah lengkap"""
+    pipeline = joblib.load('models/kos/kos_price_pipeline.pkl')
+    return pipeline
 
 def predict_kos_price(region):
-    kos_model, _, _, _ = load_housing_resources()
+    """Prediksi harga kos menggunakan pipeline"""
+    pipeline = load_housing_resources()
     
-    # Perbaikan Bug: Encoder dari notebook aslinya melakukan fit pada data yang sudah jadi angka,
-    # bukan pada teks kota. Jadi kita bypass encoder yang rusak dan mapping manual ke nilai aslinya.
+    # Mapping region ke format yang diharapkan model (string, bukan integer)
     kos_region_mapping = {
-        'Bekasi': 0,
-        'Bogor': 1,
-        'Depok': 2,
-        'Jakarta Barat': 3,
-        'Jakarta Pusat': 4,
-        'Jakarta Selatan': 5,
-        'Jakarta Timur': 6,
-        'Jakarta Utara': 7,
-        'Tangerang': 8,
-        'Tangerang Selatan': 9,
-        'Jakarta Raya (General)': 4  # Mengambil nilai tengah ibukota
+        'Bekasi': 'Bekasi',
+        'Bogor': 'Bogor',
+        'Depok': 'Depok',
+        'Jakarta Barat': 'Jakarta Barat',
+        'Jakarta Pusat': 'Jakarta Pusat',
+        'Jakarta Selatan': 'Jakarta Selatan',
+        'Jakarta Timur': 'Jakarta Timur',
+        'Jakarta Utara': 'Jakarta Utara',
+        'Tangerang': 'Tangerang',
+        'Tangerang Selatan': 'Tangerang Selatan',
+        'Jakarta Raya (General)': 'Jakarta Pusat'  # Default ke Jakarta Pusat
     }
     
-    region_val = kos_region_mapping.get(region, 4)
-    tipe_kos_val = 0      # 0 = Kos Campur
-    electricity_val = 1   # 1 = Termasuk Listrik
+    region_val = kos_region_mapping.get(region, 'Jakarta Pusat')
+    tipe_kos_val = 'Campur'  # Kos Campur
+    electricity_val = 'Ya'   # Termasuk Listrik
     
     try:
         import warnings
+        import pandas as pd
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
-            # Fitur: [region, tipe_kos, is_electricity, rating, rating_count, room_area]
-            prediction = kos_model.predict([[region_val, tipe_kos_val, electricity_val, 4.5, 10, 12.0]])[0]
-        return int(prediction)
+            # Buat DataFrame dengan nama kolom yang sesuai dengan pipeline
+            df_kos = pd.DataFrame({
+                'region': [region_val],
+                'tipe_kos': [tipe_kos_val],
+                'is_electricity_included': [electricity_val],
+                'rating_clean': [4.5],
+                'rating_count_clean': [10],
+                'room_area': [12.0]
+            })
+            prediction = pipeline.predict(df_kos)[0]
+        # Kemungkinan model dilatih dengan log-transform, jadi perlu expm1
+        import numpy as np
+        return int(np.expm1(prediction))
     except Exception as e:
-        return 1600000
+        st.error(f"Error prediksi kos: {e}")
+        return 1600000  # Fallback default
 
 # ==========================================
 # 3. KONSULTAN KARIR AI (GEMINI)
