@@ -101,14 +101,41 @@ def render():
         </div>
         """, unsafe_allow_html=True)
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
+            st.markdown("<p style='font-size:14px; font-weight:600; margin-bottom:8px; color:rgba(255,255,255,0.9);'>Judul / Posisi Pekerjaan</p>", unsafe_allow_html=True)
             pilihan_judul = st.text_input(
                 "Judul / Posisi Pekerjaan",
-                placeholder="Contoh: Senior Data Scientist, HR Manager, Full Stack Developer...",
+                label_visibility="collapsed",
+                placeholder="Contoh: Senior Data Scientist...",
                 help="Ketik jabatan pekerjaan yang ingin diprediksi gajinya. Semakin spesifik semakin akurat."
             )
             
+        with col2:
+            st.markdown("<p style='font-size:14px; font-weight:600; margin-bottom:8px; color:rgba(255,255,255,0.9);'>Kategori Pekerjaan</p>", unsafe_allow_html=True)
+            # Callback untuk kategori pekerjaan
+            def update_kategori(kategori_baru):
+                st.session_state.kategori_terpilih = kategori_baru
+
+            # Kategori Pekerjaan (Dinamis)
+            if "kategori_terpilih" not in st.session_state:
+                st.session_state.kategori_terpilih = list_kategori[6]
+            
+            pilihan_kategori = st.session_state.kategori_terpilih
+            
+            with st.expander(f"💼 {st.session_state.kategori_terpilih}"):
+                st.markdown("<div class='marker-dropdown-list'></div>", unsafe_allow_html=True)
+                for kat in list_kategori:
+                    st.button(
+                        kat, 
+                        key=f"btn_kat_{kat}", 
+                        use_container_width=True,
+                        on_click=update_kategori,
+                        args=(kat,)
+                    )
+
+        with col3:
+            st.markdown("<p style='font-size:14px; font-weight:600; margin-bottom:8px; color:rgba(255,255,255,0.9);'>Lokasi Penempatan</p>", unsafe_allow_html=True)
             # Callback untuk mempercepat perpindahan lokasi tanpa double-loading
             def update_lokasi(lokasi_baru):
                 st.session_state.lokasi_terpilih = lokasi_baru
@@ -119,7 +146,7 @@ def render():
             
             pilihan_lokasi = st.session_state.lokasi_terpilih
             
-            with st.expander(f"📍 Lokasi Penempatan: {st.session_state.lokasi_terpilih}"):
+            with st.expander(f"📍 {st.session_state.lokasi_terpilih}"):
                 st.markdown("<div class='marker-dropdown-list'></div>", unsafe_allow_html=True)
                 for loc in list_lokasi:
                     st.button(
@@ -128,28 +155,6 @@ def render():
                         use_container_width=True,
                         on_click=update_lokasi,
                         args=(loc,)
-                    )
-
-        with col2:
-            # Callback untuk kategori pekerjaan
-            def update_kategori(kategori_baru):
-                st.session_state.kategori_terpilih = kategori_baru
-
-            # Kategori Pekerjaan (Dinamis)
-            if "kategori_terpilih" not in st.session_state:
-                st.session_state.kategori_terpilih = list_kategori[0]
-            
-            pilihan_kategori = st.session_state.kategori_terpilih
-            
-            with st.expander(f"💼 Kategori Pekerjaan: {st.session_state.kategori_terpilih}"):
-                st.markdown("<div class='marker-dropdown-list'></div>", unsafe_allow_html=True)
-                for kat in list_kategori:
-                    st.button(
-                        kat, 
-                        key=f"btn_kat_{kat}", 
-                        use_container_width=True,
-                        on_click=update_kategori,
-                        args=(kat,)
                     )
 
 

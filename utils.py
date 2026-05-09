@@ -169,7 +169,7 @@ def predict_kos_price(region):
         'Jakarta Utara': 'Jakarta Utara',
         'Tangerang': 'Tangerang',
         'Tangerang Selatan': 'Tangerang Selatan',
-        'Jakarta Raya (General)': 'Jakarta Pusat'  # Default ke Jakarta Pusat
+        'Jakarta Raya (General)': 'Jakarta Selatan'  # Default ke Jakarta Pusat
     }
     
     region_val = kos_region_mapping.get(region, 'Jakarta Pusat')
