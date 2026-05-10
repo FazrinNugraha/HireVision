@@ -5,13 +5,14 @@ st.set_page_config(
     page_title="HireMap — Jabodetabek Career Navigator",
     page_icon="🧭",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 # ══════════════════════════════════════════════════════════════
 #  MASTER CSS
 # ══════════════════════════════════════════════════════════════
-st.markdown("""
+st.markdown(
+    """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -201,12 +202,15 @@ details summary { border-radius: 10px !important; font-weight: 500 !important; }
     .metric-card, .metric-card-highlight { padding: 18px 14px; }
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ══════════════════════════════════════════════════════════════
 #  HERO SECTION
 # ══════════════════════════════════════════════════════════════
-st.markdown("""
+st.markdown(
+    """
 <div class="hero-container">
     <div class="hero-badge">Jabodetabek Career Intelligence</div>
     <p class="hero-title">HireVision</p>
@@ -229,12 +233,16 @@ st.markdown("""
         </div>
     </div>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ══════════════════════════════════════════════════════════════
 #  NAVIGASI TABS
 # ══════════════════════════════════════════════════════════════
-tab1, tab2, tab3 = st.tabs(["💰  Predict Salary", "🗺️  Spatial Job Map", "🤖  AI Consultant"])
+tab1, tab2, tab3 = st.tabs(
+    ["💰  Predict Salary", "🗺️  Spatial Job Map", "🤖  AI Consultant"]
+)
 
 with tab1:
     predict_salary.render()
