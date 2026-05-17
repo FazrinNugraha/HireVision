@@ -40,8 +40,12 @@ QUICK_QUESTIONS = [
 BASE_SYSTEM_PROMPT = (
     "Anda adalah asisten konsultan karir profesional dan perencana keuangan untuk pencari kerja di Jabodetabek. "
     "Tugas Anda menjawab pertanyaan seputar karir, dan SECARA PROAKTIF memberikan 1-2 saran spesifik "
-    "mengenai strategi finansial relokasi (tempat tinggal/kos) berdasarkan rasio gaji dan biaya hunian yang ada di konteks."
+    "mengenai strategi finansial relokasi (tempat tinggal/kos) berdasarkan rasio gaji dan biaya hunian yang ada di konteks. "
+    "Gunakan format jawaban yang rapi dan mudah dibaca: paragraf singkat atau bullet points pendek, hindari paragraf yang terlalu panjang, "
+    "dan prioritaskan jawaban yang padat, jelas, dan langsung ke inti."
 )
+
+LOADING_MESSAGE = "_Tunggu sebentar, AI sedang menyiapkan jawaban Anda..._"
 
 
 # ══════════════════════════════════════════════════════════════
@@ -59,6 +63,60 @@ def _render_header():
     </p>
 </div>
 <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:18px 0 24px 0;">
+""", unsafe_allow_html=True)
+
+
+def _inject_chat_css():
+    """Perlebar area isi chat dan rapikan tipografi markdown agar lebih nyaman dibaca."""
+    st.markdown("""
+<style>
+[data-testid="stChatMessage"] {
+    padding: 14px 16px !important;
+}
+
+[data-testid="stChatMessage"] > div:last-child,
+[data-testid="stChatMessageContent"] {
+    width: 100% !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
+    width: 100% !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li {
+    font-size: 15.5px !important;
+    line-height: 1.8 !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p {
+    margin-bottom: 0.7rem !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] ul,
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] ol {
+    padding-left: 1.35rem !important;
+    margin: 0.4rem 0 0.9rem 0 !important;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li + li {
+    margin-top: 0.35rem !important;
+}
+
+@media (max-width: 768px) {
+    [data-testid="stChatMessage"] {
+        padding: 12px !important;
+    }
+
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li {
+        font-size: 14.5px !important;
+        line-height: 1.7 !important;
+    }
+}
+</style>
 """, unsafe_allow_html=True)
 
 
@@ -222,21 +280,31 @@ def _stream_to_placeholder(stream, placeholder) -> str:
     return full_response
 
 
+def _show_loading_message(placeholder):
+    """Tampilkan pesan singkat saat respons AI masih diproses."""
+    placeholder.markdown(LOADING_MESSAGE)
+
+
 def _handle_pending_question(client, system_prompt: str):
-    """Proses pertanyaan dari quick-button yang diset via session_state['pending_question']."""
+    """Proses pertanyaan dari quick-button yang diset via session_state['pending_question']."""    
     if "pending_question" not in st.session_state:
         return
 
     pending_q = st.session_state.pop("pending_question")
     st.session_state.messages.append({"role": "user", "content": pending_q})
+    st.chat_message("user").write(pending_q)
 
-    # Susun history tanpa pesan terakhir (yang baru saja ditambahkan)
-    history_murni = [
-        {"role": m["role"], "content": m["content"]}
-        for m in st.session_state.messages[:-1]
-    ]
-    stream = chat_with_career_bot(client, pending_q, history_murni, system_prompt)
-    full_response = _collect_stream_response(stream)
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        _show_loading_message(placeholder)
+
+        # Susun history tanpa pesan terakhir (yang baru saja ditambahkan)
+        history_murni = [
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages[:-1]
+        ]
+        stream = chat_with_career_bot(client, pending_q, history_murni, system_prompt)
+        full_response = _stream_to_placeholder(stream, placeholder)
 
     if full_response:
         st.session_state.messages.append({"role": "assistant", "content": full_response})
@@ -261,6 +329,7 @@ def _handle_user_input(client, system_prompt: str):
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
+        _show_loading_message(placeholder)
         history_murni = [
             {"role": m["role"], "content": m["content"]}
             for m in st.session_state.messages[:-1]
@@ -278,6 +347,7 @@ def _handle_user_input(client, system_prompt: str):
 def render():
     """Entry point tab — orkestrasi semua komponen."""
     _render_header()
+    _inject_chat_css()
 
     client = get_gemini_client()
     if client is None:
