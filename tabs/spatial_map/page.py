@@ -6,39 +6,23 @@ Modul ini bertanggung jawab untuk:
 2. Visualisasi feature importance model Random Forest
 3. Scatter plot "sweet spot" (loker vs biaya kos)
 4. Chart overlay bar + line (volume loker vs inflasi sewa)
-
-Struktur fungsi:
-- _render_header()              : Judul tab
-- _section_header(text)         : Helper section header
-- _load_data_kota()             : Load data agregat lowongan + prediksi kos
-- _render_filter_industri(df)   : Filter + bar chart per industri
-- _compute_feature_importance() : Agregasi importance model (Judul/Kategori/Lokasi/Target)
-- _render_feature_importance()  : Visualisasi horizontal bar
-- _render_scatter_sweetspot(df) : Scatter loker vs kos
-- _render_chart_overlay(df)     : Bar + line dual axis
-- render()                      : Entry point (orkestrasi)
 """
 
-import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import pandas as pd
-from utils import load_map_data, predict_kos_price, load_ml_resources
+import streamlit as st
+
+from utils import load_map_data, load_ml_resources, predict_kos_price
 
 
-# ══════════════════════════════════════════════════════════════
-#  STYLING KONSTANTA
-# ══════════════════════════════════════════════════════════════
-BG_COLOR       = "#0e1117"
-ACCENT_COLOR   = "#FF416C"
+BG_COLOR = "#0e1117"
+ACCENT_COLOR = "#FF416C"
 ACCENT_SECONDARY = "#FF4B2B"
-BLUE_COLOR     = "#4a90d9"
-GRID_COLOR     = "#1e1e2e"
+BLUE_COLOR = "#4a90d9"
+GRID_COLOR = "#1e1e2e"
 
 
-# ══════════════════════════════════════════════════════════════
-#  HEADER & SECTION HELPERS
-# ══════════════════════════════════════════════════════════════
 def _render_header():
     """Render judul utama + deskripsi tab."""
     st.markdown("""
@@ -78,22 +62,13 @@ def _setup_dark_axes(fig, ax):
     ax.spines[:].set_visible(False)
 
 
-# ══════════════════════════════════════════════════════════════
-#  DATA LOADER
-# ══════════════════════════════════════════════════════════════
 def _load_data_kota(df_map: pd.DataFrame) -> pd.DataFrame:
-    """
-    Agregasi total lowongan per kota + prediksi harga kos.
-    Returns: DataFrame dengan kolom [Lokasi_Clean, Jumlah_Lowongan, Harga_Kos_Estimasi].
-    """
+    """Agregasi total lowongan per kota + prediksi harga kos."""
     df_kota = df_map.groupby("Lokasi_Clean")["Jumlah_Lowongan"].sum().reset_index()
     df_kota["Harga_Kos_Estimasi"] = df_kota["Lokasi_Clean"].apply(predict_kos_price)
     return df_kota.sort_values(by="Jumlah_Lowongan", ascending=False).reset_index(drop=True)
 
 
-# ══════════════════════════════════════════════════════════════
-#  1. FILTER INDUSTRI
-# ══════════════════════════════════════════════════════════════
 def _render_filter_industri(df_map: pd.DataFrame):
     """Render dropdown filter industri + bar chart distribusi per kota."""
     _section_header("🏭 Filter Distribusi Spesifik per Industri")
@@ -112,18 +87,19 @@ def _render_filter_industri(df_map: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(10, 4))
     _setup_dark_axes(fig, ax)
 
-    # Highlight bar pertama (teratas)
     colors = [ACCENT_COLOR if i == 0 else BLUE_COLOR for i in range(len(df_industri))]
     bars = ax.bar(df_industri["Lokasi_Clean"], df_industri["Jumlah_Lowongan"], color=colors, width=0.6)
 
-    # Label angka di atas tiap bar
     for bar, val in zip(bars, df_industri["Jumlah_Lowongan"]):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.5,
             f"{int(val):,}",
-            ha="center", va="bottom",
-            color="white", fontsize=9, fontweight="bold",
+            ha="center",
+            va="bottom",
+            color="white",
+            fontsize=9,
+            fontweight="bold",
         )
 
     ax.set_title(f"Loker '{filter_industri}' Terbaik", color="white", fontsize=12)
@@ -133,32 +109,23 @@ def _render_filter_industri(df_map: pd.DataFrame):
     st.pyplot(fig)
 
 
-# ══════════════════════════════════════════════════════════════
-#  2. FEATURE IMPORTANCE
-# ══════════════════════════════════════════════════════════════
 def _compute_feature_importance(resources: dict) -> pd.DataFrame:
-    """
-    Agregasi feature importance model Random Forest ke 4 grup:
-    Judul Pekerjaan, Kategori Pekerjaan, Lokasi, Target Encoding.
-    Returns: DataFrame dengan kolom [Fitur, Kepentingan] (sudah di-normalisasi ke 1.0).
-    """
-    model       = resources["model"]
-    tfidf_word  = resources["tfidf_word"]
-    tfidf_char  = resources["tfidf_char"]
+    """Agregasi feature importance model Random Forest ke 4 grup utama."""
+    model = resources["model"]
+    tfidf_word = resources["tfidf_word"]
+    tfidf_char = resources["tfidf_char"]
     ohe_encoder = resources["ohe_encoder"]
 
     importances = model.feature_importances_
-    n_word   = len(tfidf_word.vocabulary_)
-    n_char   = len(tfidf_char.vocabulary_)
-    n_target = 1   # target encoding default
-    n_extra  = 3   # title_len, title_wc, comp_size
+    n_word = len(tfidf_word.vocabulary_)
+    n_char = len(tfidf_char.vocabulary_)
+    n_target = 1
+    n_extra = 3
 
-    # Nama fitur OHE (Senioritas di-drop karena tidak dipakai model)
     ohe_names = ohe_encoder.get_feature_names_out(["Lokasi_Clean", "Kategori_Pekerjaan", "Senioritas"])
     ohe_names = ohe_names[:-3]
 
-    # Hitung per grup
-    imp_judul  = float(importances[:n_word + n_char].sum())
+    imp_judul = float(importances[: n_word + n_char].sum())
     imp_target = float(importances[n_word + n_char : n_word + n_char + n_target + n_extra].sum())
     imp_ohe_start = n_word + n_char + n_target + n_extra
 
@@ -173,25 +140,26 @@ def _compute_feature_importance(resources: dict) -> pd.DataFrame:
         if col.startswith("Kategori_Pekerjaan")
     )
 
-    # Normalisasi
     total = imp_judul + imp_target + imp_lokasi + imp_kategori
     if total > 0:
-        imp_judul    /= total
-        imp_target   /= total
-        imp_lokasi   /= total
+        imp_judul /= total
+        imp_target /= total
+        imp_lokasi /= total
         imp_kategori /= total
 
-    return pd.DataFrame({
-        "Fitur": ["Judul Pekerjaan", "Kategori Pekerjaan", "Lokasi", "Target Encoding"],
-        "Kepentingan": [imp_judul, imp_kategori, imp_lokasi, imp_target],
-    }).sort_values(by="Kepentingan", ascending=True)
+    return pd.DataFrame(
+        {
+            "Fitur": ["Judul Pekerjaan", "Kategori Pekerjaan", "Lokasi", "Target Encoding"],
+            "Kepentingan": [imp_judul, imp_kategori, imp_lokasi, imp_target],
+        }
+    ).sort_values(by="Kepentingan", ascending=True)
 
 
 def _render_feature_importance():
     """Render section AI Market Logic dengan horizontal bar chart."""
     _section_header(
         "🧠 AI Market Logic: Penentu Gaji Terbesar",
-        subtitle="Grafik ini menjelaskan bobot kepentingan fitur (feature importance) yang digunakan model Machine Learning kami dalam menentukan prediksi gaji.",
+        subtitle="Grafik ini menjelaskan bobot kepentingan fitur yang digunakan model Machine Learning kami dalam menentukan prediksi gaji.",
     )
 
     try:
@@ -208,8 +176,10 @@ def _render_feature_importance():
                 width + 0.01,
                 bar.get_y() + bar.get_height() / 2,
                 f"{width:.1%}",
-                ha="left", va="center",
-                color="white", fontweight="bold",
+                ha="left",
+                va="center",
+                color="white",
+                fontweight="bold",
             )
 
         ax.set_xlabel("Bobot Pengaruh", color="white")
@@ -221,40 +191,38 @@ def _render_feature_importance():
         st.error(f"Gagal memuat visualisasi feature importance: {str(e)}")
 
 
-# ══════════════════════════════════════════════════════════════
-#  3. SCATTER SWEET SPOT
-# ══════════════════════════════════════════════════════════════
 def _render_scatter_sweetspot(df_kota: pd.DataFrame):
-    """Render scatter plot kuadran: loker vs biaya kos, dengan median lines."""
+    """Render scatter plot kuadran loker vs biaya kos."""
     _section_header(
-        "🎯 Scatter Plot Kuadran 'Sweet Spot'",
-        subtitle="Kanan Bawah: Loker Terbanyak &amp; Kos Murah (The Sweet Spot). Kiri Atas: Loker Sedikit &amp; Kos Mahal.",
+        "🎯 Scatter Plot Kuadran Sweet Spot",
+        subtitle="Kanan bawah: loker terbanyak dan kos murah. Kiri atas: loker sedikit dan kos mahal.",
     )
 
     fig, ax = plt.subplots(figsize=(10, 6))
     _setup_dark_axes(fig, ax)
 
     median_loker = df_kota["Jumlah_Lowongan"].median()
-    median_kos   = df_kota["Harga_Kos_Estimasi"].median()
+    median_kos = df_kota["Harga_Kos_Estimasi"].median()
 
-    # Scatter points
     ax.scatter(
         df_kota["Harga_Kos_Estimasi"],
         df_kota["Jumlah_Lowongan"],
-        color=ACCENT_COLOR, s=120, alpha=0.85,
-        edgecolors="white", linewidth=1.2,
+        color=ACCENT_COLOR,
+        s=120,
+        alpha=0.85,
+        edgecolors="white",
+        linewidth=1.2,
     )
 
-    # Label tiap titik
     for _, row in df_kota.iterrows():
         ax.text(
             row["Harga_Kos_Estimasi"] + 10000,
             row["Jumlah_Lowongan"] + 50,
             row["Lokasi_Clean"],
-            color=(1, 1, 1, 0.7), fontsize=9,
+            color=(1, 1, 1, 0.7),
+            fontsize=9,
         )
 
-    # Median lines (pembatas kuadran)
     ax.axvline(median_kos, color=ACCENT_SECONDARY, linestyle="--", alpha=0.35)
     ax.axhline(median_loker, color=ACCENT_SECONDARY, linestyle="--", alpha=0.35)
 
@@ -267,33 +235,30 @@ def _render_scatter_sweetspot(df_kota: pd.DataFrame):
     st.pyplot(fig)
 
 
-# ══════════════════════════════════════════════════════════════
-#  4. CHART OVERLAY
-# ══════════════════════════════════════════════════════════════
 def _render_chart_overlay(df_kota: pd.DataFrame):
-    """Render dual-axis chart: bar (lowongan) + line (harga kos)."""
+    """Render dual-axis chart: bar lowongan + line harga kos."""
     _section_header(
-        "📈 Chart Overlay: Volume Pekerjaan &amp; Inflasi Harga Sewa",
-        subtitle="Bar = ketersediaan loker. Garis oranye = inflasi biaya kos per bulan.",
+        "📈 Chart Overlay: Volume Pekerjaan dan Inflasi Harga Sewa",
+        subtitle="Bar = ketersediaan loker. Garis merah = inflasi biaya kos per bulan.",
     )
 
     fig, ax_bar = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor(BG_COLOR)
     ax_bar.set_facecolor(BG_COLOR)
 
-    # Bar: jumlah lowongan
     ax_bar.bar(df_kota["Lokasi_Clean"], df_kota["Jumlah_Lowongan"], color=BLUE_COLOR, width=0.6)
     ax_bar.set_ylabel("Jumlah Lowongan", color=BLUE_COLOR, fontweight="bold")
     ax_bar.tick_params(axis="y", colors=BLUE_COLOR)
     ax_bar.tick_params(axis="x", colors="white", rotation=30)
 
-    # Line: harga kos (sumbu Y kanan)
     ax_line = ax_bar.twinx()
     ax_line.plot(
         df_kota["Lokasi_Clean"],
         df_kota["Harga_Kos_Estimasi"],
-        color=ACCENT_COLOR, marker="o",
-        linewidth=2.5, markersize=8,
+        color=ACCENT_COLOR,
+        marker="o",
+        linewidth=2.5,
+        markersize=8,
     )
     ax_line.set_ylabel("Estimasi Biaya Kos (Rp)", color=ACCENT_COLOR, fontweight="bold")
     ax_line.tick_params(axis="y", colors=ACCENT_COLOR)
@@ -305,15 +270,12 @@ def _render_chart_overlay(df_kota: pd.DataFrame):
     st.pyplot(fig)
 
 
-# ══════════════════════════════════════════════════════════════
-#  ENTRY POINT
-# ══════════════════════════════════════════════════════════════
 def render():
-    """Entry point tab — orkestrasi semua komponen."""
+    """Entry point tab untuk orkestrasi semua komponen."""
     _render_header()
 
     try:
-        df_map  = load_map_data("data/data_peta_jabodetabek.csv")
+        df_map = load_map_data("data/data_peta_jabodetabek.csv")
         df_kota = _load_data_kota(df_map)
 
         _render_filter_industri(df_map)
