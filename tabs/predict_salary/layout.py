@@ -64,6 +64,21 @@ div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"
 div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"]:hover p {
     color: #5dade2 !important;
 }
+@media (max-width: 768px) {
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        border-radius: 9px !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) div[data-testid="stExpanderDetails"] {
+        max-height: 220px;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"] {
+        padding: 9px 4px !important;
+    }
+    div[data-testid="stExpander"]:has(.marker-dropdown-list) button[kind="secondary"] p {
+        font-size: 12.5px !important;
+        line-height: 1.35 !important;
+    }
+}
 </style>
 """,
         unsafe_allow_html=True,
@@ -76,10 +91,10 @@ def render_header():
         """
 <div style="margin-bottom:6px;">
     <h2 style="font-size:1.55rem;font-weight:800;color:#fff;margin:0 0 6px 0;">
-        Kalkulator Estimasi Gaji Pasar
+        Market Salary Estimator
     </h2>
     <p style="color:rgba(255,255,255,0.45);font-size:0.9rem;margin:0;">
-        Estimasi gaji berbasis AI dengan proyeksi inflasi masa depan, latar belakang pendidikan, dan sertifikasi profesional.
+        Dapatkan proyeksi gaji yang lebih terukur dari model prediksi yang optimal dengan individual adjusment factor yang membaca pengaruh pengalaman, pendidikan, dan sertifikasi profesional.
     </p>
 </div>
 <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:18px 0 24px 0;">

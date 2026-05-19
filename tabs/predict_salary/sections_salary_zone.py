@@ -11,38 +11,34 @@ def get_salary_zone_status(input_salary: int, res: dict):
 
     if input_salary < gaji_min:
         return {
-            "label": "DI BAWAH KISARAN WAJAR",
+            "label": "DI BAWAH PASAR",
             "color": "#e74c3c",
             "bg": "rgba(231,76,60,0.08)",
             "border": "rgba(231,76,60,0.25)",
             "desc": "Angka ini masih berada di bawah kisaran wajar sistem. Sebaiknya pertimbangkan negosiasi agar hasil akhirnya lebih kompetitif.",
-            "badge": "LOW",
         }
     if input_salary < gaji_prediksi:
         return {
-            "label": "ZONA AMAN",
+            "label": "BATAS BAWAH",
             "color": "#f1c40f",
             "bg": "rgba(241,196,15,0.08)",
             "border": "rgba(241,196,15,0.25)",
             "desc": "Angka ini masih aman dan realistis, tetapi belum menyentuh titik estimasi terbaik untuk profil Anda.",
-            "badge": "SAFE",
         }
     if input_salary <= gaji_max:
         return {
-            "label": "ZONA NEGOSIASI IDEAL",
+            "label": "KISARAN WAJAR",
             "color": "#2ecc71",
             "bg": "rgba(46,204,113,0.08)",
             "border": "rgba(46,204,113,0.25)",
             "desc": "Angka ini berada di zona negosiasi yang ideal. Cukup kuat untuk diajukan, namun masih terlihat realistis untuk profil Anda.",
-            "badge": "IDEAL",
         }
     return {
-        "label": "CUKUP AMBISIUS",
+        "label": "DIATAS PASAR",
         "color": "#5dade2",
         "bg": "rgba(93,173,226,0.08)",
         "border": "rgba(93,173,226,0.25)",
         "desc": "Angka ini sudah melewati batas atas kisaran wajar. Masih bisa dipakai sebagai target optimistis, tetapi perlu alasan negosiasi yang kuat.",
-        "badge": "HIGH",
     }
 
 
@@ -53,7 +49,7 @@ def render_salary_evaluation(res):
         """
 <div class="sec-hd">
     <div class="sec-hd-dot"></div>
-    <span class="sec-hd-text">Zona Negosiasi Gaji</span>
+    <span class="sec-hd-text">Cek Kelayakan Gaji</span>
     <div class="sec-hd-line"></div>
 </div>
 <p style="color:rgba(255,255,255,0.38);font-size:0.82rem;margin:-8px 0 16px 0;">
@@ -92,7 +88,7 @@ def render_salary_evaluation(res):
     range_min = gaji_min * 0.85
     range_max = gaji_max * 1.15
     pct_bar = min(max((gaji_user - range_min) / (range_max - range_min), 0), 1)
-    bar_width = int(pct_bar * 100)
+    bar_width = max(3, int(pct_bar * 100))
 
     if gaji_user < gaji_min:
         delta_text = f"-Rp {int(gaji_min - gaji_user):,} dari batas bawah"
@@ -110,12 +106,14 @@ def render_salary_evaluation(res):
     border-radius: 18px;
     padding: 28px;
     margin-top: 8px;
+    max-width: 100%;
+    overflow: hidden;
 }}
 .sb-bar-track {{
     height: 12px;
     background: rgba(255,255,255,0.07);
     border-radius: 6px;
-    margin: 6px 0;
+    margin: 8px 0 10px 0;
     overflow: hidden;
 }}
 .sb-bar-fill {{
@@ -124,12 +122,40 @@ def render_salary_evaluation(res):
     background: linear-gradient(90deg, {status['color']}88, {status['color']});
     border-radius: 6px;
 }}
+.sb-range-labels {{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    flex-wrap:wrap;
+}}
+.sb-range-labels span {{
+    font-size:11px;
+    color:rgba(255,255,255,0.42);
+}}
 .sb-mini-card {{
     background: rgba(0,0,0,0.2);
     border-radius: 10px;
     padding: 12px 14px;
     flex: 1;
     min-width: 140px;
+}}
+.sb-mini-card p {{
+    overflow-wrap: anywhere;
+}}
+@media (max-width: 768px) {{
+    .sb-card {{
+        border-radius: 14px;
+        padding: 18px 14px;
+    }}
+    .sb-card > div:first-child > div:last-child {{
+        margin-left: 0 !important;
+        text-align: left !important;
+        width: 100%;
+    }}
+    .sb-mini-card {{
+        flex-basis: 100%;
+        min-width: 100%;
+    }}
 }}
 </style>
 <div class="sb-card">
@@ -144,17 +170,13 @@ def render_salary_evaluation(res):
         </div>
     </div>
     <div style="margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;">
-            <span style="font-size:12px;color:rgba(255,255,255,0.4);">Rp {int(range_min):,}</span>
-            <span style="font-size:12px;color:rgba(255,255,255,0.4);">Rp {int(range_max):,}</span>
-        </div>
         <div class="sb-bar-track">
             <div class="sb-bar-fill"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-            <span style="font-size:11px;color:rgba(255,255,255,0.3);">Min Wajar: Rp {int(gaji_min):,}</span>
-            <span style="font-size:11px;color:rgba(255,255,255,0.45);">Estimasi: Rp {int(gaji_prediksi):,}</span>
-            <span style="font-size:11px;color:rgba(255,255,255,0.3);">Max Nego: Rp {int(gaji_max):,}</span>
+        <div class="sb-range-labels">
+            <span>Min Wajar: Rp {int(gaji_min):,}</span>
+            <span>Estimasi: Rp {int(gaji_prediksi):,}</span>
+            <span>Max Nego: Rp {int(gaji_max):,}</span>
         </div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;">

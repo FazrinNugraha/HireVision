@@ -35,9 +35,43 @@ def render_hasil_card(res):
 
     st.markdown(
         f"""
-<div style="background:{warna['bg']};border:1px solid {warna['border']};border-radius:20px;padding:32px 36px;text-align:center;margin-bottom:16px;">
+<style>
+.salary-result-card {{
+    background:{warna['bg']};
+    border:1px solid {warna['border']};
+    border-radius:20px;
+    padding:32px 36px;
+    text-align:center;
+    margin-bottom:16px;
+    overflow:hidden;
+}}
+.salary-result-value {{
+    margin:0 0 8px 0;
+    color:{warna['val']};
+    font-size:2.8rem;
+    font-weight:800;
+    letter-spacing:0;
+    line-height:1.12;
+    overflow-wrap:anywhere;
+}}
+@media (max-width: 768px) {{
+    .salary-result-card {{
+        border-radius:16px;
+        padding:24px 18px;
+    }}
+    .salary-result-value {{
+        font-size:2.15rem;
+    }}
+}}
+@media (max-width: 420px) {{
+    .salary-result-value {{
+        font-size:1.85rem;
+    }}
+}}
+</style>
+<div class="salary-result-card">
     <p style="margin:0 0 6px 0;color:{warna['title']};font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Estimasi Gaji Anda</p>
-    <h1 style="margin:0 0 8px 0;color:{warna['val']};font-size:2.8rem;font-weight:800;letter-spacing:-1px;">Rp {res['gaji_prediksi']:,}</h1>
+    <h1 class="salary-result-value">Rp {res['gaji_prediksi']:,}</h1>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -90,6 +124,7 @@ def render_analisis_hunian(res):
     padding: 20px 22px 18px 22px;
     margin-top: 8px;
     overflow: hidden;
+    max-width: 100%;
 }}
 .housing-title-row {{
     display:flex;
@@ -177,7 +212,8 @@ def render_analisis_hunian(res):
     font-size:2.8rem;
     line-height:1;
     font-weight:800;
-    letter-spacing:-1px;
+    letter-spacing:0;
+    overflow-wrap:anywhere;
 }}
 .housing-body-copy {{
     margin:0 0 18px 0;
@@ -232,6 +268,7 @@ def render_analisis_hunian(res):
     font-weight:800;
     color:#ffffff;
     text-align:right;
+    overflow-wrap:anywhere;
 }}
 @media (max-width: 900px) {{
     .housing-layout {{
@@ -244,6 +281,29 @@ def render_analisis_hunian(res):
     }}
     .housing-big-value {{
         font-size:2.3rem;
+    }}
+}}
+@media (max-width: 520px) {{
+    .housing-card {{
+        border-radius:14px;
+        padding:16px 14px;
+    }}
+    .housing-title-text {{
+        font-size:1rem;
+        line-height:1.35;
+    }}
+    .housing-big-value {{
+        font-size:1.95rem;
+        line-height:1.12;
+    }}
+    .housing-range-row {{
+        gap:8px;
+    }}
+    .housing-stat-row {{
+        align-items:flex-start;
+    }}
+    .housing-stat-value {{
+        font-size:0.98rem;
     }}
 }}
 </style>
@@ -307,11 +367,11 @@ def render_strategi_komuter(res):
         """
 <div class="sec-hd">
     <div class="sec-hd-dot"></div>
-    <span class="sec-hd-text">Strategi Hunian (Opsi Komuter)</span>
+    <span class="sec-hd-text">Pilihan Tempat Tinggal (Opsi Komuter)</span>
     <div class="sec-hd-line"></div>
 </div>
 <p style="color:rgba(255,255,255,0.38);font-size:0.82rem;margin:-8px 0 14px 0;">
-    Tinggal di wilayah penyangga untuk menghemat biaya hidup bulanan sambil tetap bekerja di pusat bisnis.
+    Tinggal di wilayah kota lain di jabodetabekk untuk menghemat biaya hidup bulanan sambil tetap bekerja di pusat bisnis.
 </p>
 """,
         unsafe_allow_html=True,

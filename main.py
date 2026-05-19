@@ -17,6 +17,10 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+* { box-sizing: border-box; }
+html, body, .stApp { overflow-x: hidden; }
+img, svg, canvas { max-width: 100%; }
+[data-testid="stHorizontalBlock"], [data-testid="column"] { min-width: 0 !important; }
 
 /* BACKGROUND */
 .stApp { background: linear-gradient(160deg, #08080f 0%, #0f0a1a 60%, #080810 100%); }
@@ -89,6 +93,9 @@ footer { visibility: hidden; }
     padding: 5px !important; gap: 4px !important;
     border: 1px solid rgba(255,255,255,0.07) !important;
     margin-bottom: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    flex-wrap: nowrap !important;
 }
 .stTabs [data-baseweb="tab"] {
     border-radius: 10px !important;
@@ -97,6 +104,7 @@ footer { visibility: hidden; }
     color: rgba(255,255,255,0.4) !important;
     background: transparent !important; border: none !important;
     transition: all 0.2s ease !important;
+    white-space: nowrap !important;
 }
 .stTabs [data-baseweb="tab"]:hover {
     color: rgba(255,255,255,0.75) !important;
@@ -176,6 +184,7 @@ hr { border: none !important; border-top: 1px solid rgba(255,255,255,0.07) !impo
 
 /* ── ALERTS ── */
 [data-testid="stAlert"] { border-radius: 12px !important; }
+[data-testid="stTable"], [data-testid="stDataFrame"] { overflow-x: auto !important; }
 
 /* ── EXPANDER ── */
 details summary { border-radius: 10px !important; font-weight: 500 !important; }
@@ -195,11 +204,75 @@ details summary { border-radius: 10px !important; font-weight: 500 !important; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-    .hero-title { font-size: 2.2rem !important; }
+    .hero-container { padding: 4px 0 22px 0; margin-bottom: 18px; }
+    .hero-title { font-size: 2rem !important; line-height: 1.08 !important; letter-spacing: 0 !important; }
     .hero-subtitle { font-size: 1rem !important; }
-    .hero-stats { gap: 20px; }
+    .hero-stats { gap: 14px; }
+    .hero-stat-num { font-size: 1.05rem; }
+    .hero-stat-label { font-size: 13px; }
     .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
     .metric-card, .metric-card-highlight { padding: 18px 14px; }
+    .stTabs [data-baseweb="tab-list"] {
+        border-radius: 12px !important;
+        padding: 4px !important;
+        scrollbar-width: none;
+    }
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display: none; }
+    .stTabs [data-baseweb="tab"] {
+        padding: 9px 14px !important;
+        font-size: 12.5px !important;
+    }
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+    }
+    [data-testid="column"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
+    .sec-hd {
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .sec-hd-line { display: none; }
+    .sec-hd-text {
+        font-size: 0.95rem;
+        line-height: 1.35;
+    }
+    .komuter-card {
+        padding: 16px 14px;
+        border-radius: 12px;
+    }
+    div[data-testid="stMarkdownContainer"] p {
+        overflow-wrap: anywhere;
+    }
+    button {
+        white-space: normal !important;
+        min-height: 42px;
+    }
+}
+
+@media (max-width: 480px) {
+    .block-container {
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+    }
+    .hero-title { font-size: 1.75rem !important; }
+    .hero-subtitle {
+        font-size: 0.92rem !important;
+        line-height: 1.55 !important;
+        margin-bottom: 20px !important;
+    }
+    .hero-stats {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+    }
 }
 </style>
 """,
@@ -212,11 +285,10 @@ details summary { border-radius: 10px !important; font-weight: 500 !important; }
 st.markdown(
     """
 <div class="hero-container">
-    <div class="hero-badge">Jabodetabek Career Intelligence</div>
-    <p class="hero-title">HireVision</p>
+    <div class="hero-badge">Decision Support System</div>
+    <p class="hero-title">HiREVISION</p>
     <p class="hero-subtitle">
-        Temukan estimasi gaji pasar yang akurat, eksplorasi peluang kerja di 13 wilayah Jabodetabek,
-        dan dapatkan strategi karir personal dari AI — semua dalam satu platform berbasis data nyata.
+        Akses estimasi gaji pasar yang akurat, peluang kerja di 13 wilayah Jabodetabek, serta strategi karier personal berbasis AI dalam satu platform yang didukung data tepercaya.
     </p>
     <div class="hero-stats">
         <div>
@@ -240,9 +312,7 @@ st.markdown(
 # ══════════════════════════════════════════════════════════════
 #  NAVIGASI TABS
 # ══════════════════════════════════════════════════════════════
-tab1, tab2, tab3 = st.tabs(
-    ["💰  Predict Salary", "🗺️  Spatial Job Map", "🤖  AI Consultant"]
-)
+tab1, tab2, tab3 = st.tabs(["  Predict Salary", "  Spatial Job Map", "  AI Consultant"])
 
 with tab1:
     predict_salary.render()

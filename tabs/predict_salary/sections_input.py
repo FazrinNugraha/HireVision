@@ -10,17 +10,17 @@ from tabs.predict_salary.layout import render_section_header
 
 def render_input_parameter(list_kategori, list_lokasi):
     """Render baris input utama: Judul, Kategori, Lokasi."""
-    render_section_header("🎯 Parameter Utama")
+    render_section_header(" Faktor Utama")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown(
-            "<p style='font-size:14px;font-weight:600;margin-bottom:8px;color:rgba(255,255,255,0.9);'>Judul / Posisi Pekerjaan</p>",
+            "<p style='font-size:14px;font-weight:600;margin-bottom:8px;color:rgba(255,255,255,0.9);'> Posisi Pekerjaan</p>",
             unsafe_allow_html=True,
         )
         pilihan_judul = st.text_input(
-            "Judul / Posisi Pekerjaan",
+            "Posisi Pekerjaan",
             label_visibility="collapsed",
             placeholder="Contoh: Senior Data Scientist...",
             help="Ketik jabatan pekerjaan yang ingin diprediksi gajinya. Semakin spesifik semakin akurat.",
@@ -93,12 +93,11 @@ def render_input_maf():
         """
 <div class="sec-hd">
     <div class="sec-hd-dot"></div>
-    <span class="sec-hd-text">⚙️ Penyesuaian Realistis & Proyeksi Karir</span>
+    <span class="sec-hd-text">Bobot Penyesuaian Individu</span>
     <div class="sec-hd-line"></div>
 </div>
 <p style="color:rgba(255,255,255,0.45);font-size:0.85rem;line-height:1.6;margin:-8px 0 20px 0;">
-    Optimalkan estimasi gaji Anda dengan menyesuaikan faktor kunci keberhasilan karir: Level Pengalaman kerja,
-    Sertifikasi Profesional untuk nilai tambah keahlian, dan Pendidikan Terakhir.
+    Kalkulasi estimasi gaji secara personal dengan menghitung tiga parameter  karir: Pengalaman Kerja, Sertifikasi Profesional, dan Riwayat Pendidikan.
 </p>
 """,
         unsafe_allow_html=True,
